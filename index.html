@@ -48,6 +48,12 @@ body{
 .large-title{font-size:28px;font-weight:800;letter-spacing:-0.02em;margin:0 0 2px;}
 .title-sub{font-size:13px;color:var(--ink2);font-weight:500;}
 .tracking-line{font-size:12px;color:var(--brand-dark);font-weight:700;margin-top:2px;}
+.credit-btn{
+  flex-shrink:0;display:inline-flex;align-items:center;gap:5px;text-decoration:none;
+  background:var(--card);color:var(--ink);border:1.5px solid var(--line);border-radius:13px;
+  padding:8px 12px;font-size:12px;font-weight:700;box-shadow:var(--shadow);white-space:nowrap;
+}
+.credit-btn:active{transform:scale(0.97);}
 
 /* ---------- Stat / progress chips ---------- */
 .stat-row{display:flex;gap:10px;margin-top:14px;}
@@ -301,6 +307,7 @@ textarea{
         <div class="title-sub" id="dateStamp"></div>
         <div class="tracking-line" id="trackingLine"></div>
       </div>
+      <a class="credit-btn" href="https://docs.google.com/forms/d/e/1FAIpQLSdEi9Rn6w4yqppdGu-goDnrFhU_tvK_Dqezw2ALiT1c8scrNA/viewform?usp=header" target="_blank" rel="noopener noreferrer">📝 Credit Form</a>
     </div>
     <div class="stat-row">
       <div class="stat-chip entries">
@@ -418,7 +425,78 @@ textarea{
   </div>
 </div>
 
-<script>
+<script type="module">
+// ---------- Firebase / Firestore setup ----------
+// This app was originally built on Claude's artifact-only window.storage API.
+// Since it's now hosted standalone (GitHub Pages), we back it with Firestore instead,
+// but keep the exact same get/set/delete/list shape so none of the app logic below has to change.
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, setDoc, deleteDoc,
+  collection, query, where, getDocs, documentId
+} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDoKtxN5VULMTLAP0-RFZB7_z21705g1RU",
+  authDomain: "ng-waste-tracker.firebaseapp.com",
+  projectId: "ng-waste-tracker",
+  storageBucket: "ng-waste-tracker.firebasestorage.app",
+  messagingSenderId: "784298492583",
+  appId: "1:784298492583:web:9ed9b15ad02cbfc9205182",
+  measurementId: "G-HPVPL9FSDH"
+};
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+const ENTRIES_COLLECTION = 'entries';
+
+// Shared "entry:" keys go to Firestore (synced across every device/team member).
+// Everything else (personal unit/weight-mode preferences) stays local to this browser.
+window.storage = {
+  async get(key, shared){
+    if(key.startsWith('entry:')){
+      const id = key.slice('entry:'.length);
+      const snap = await getDoc(doc(db, ENTRIES_COLLECTION, id));
+      if(!snap.exists()) return null;
+      return { key, value: JSON.stringify(snap.data()), shared };
+    }
+    const v = localStorage.getItem(key);
+    if(v == null) return null;
+    return { key, value: v, shared };
+  },
+  async set(key, value, shared){
+    if(key.startsWith('entry:')){
+      const id = key.slice('entry:'.length);
+      await setDoc(doc(db, ENTRIES_COLLECTION, id), JSON.parse(value));
+      return { key, value, shared };
+    }
+    localStorage.setItem(key, value);
+    return { key, value, shared };
+  },
+  async delete(key, shared){
+    if(key.startsWith('entry:')){
+      const id = key.slice('entry:'.length);
+      await deleteDoc(doc(db, ENTRIES_COLLECTION, id));
+      return { key, deleted: true, shared };
+    }
+    localStorage.removeItem(key);
+    return { key, deleted: true, shared };
+  },
+  async list(prefix, shared){
+    if(prefix && prefix.startsWith('entry:')){
+      const idPrefix = prefix.slice('entry:'.length);
+      const q = query(
+        collection(db, ENTRIES_COLLECTION),
+        where(documentId(), '>=', idPrefix),
+        where(documentId(), '<', idPrefix + '\uf8ff')
+      );
+      const snaps = await getDocs(q);
+      const keys = snaps.docs.map(d => 'entry:' + d.id);
+      return { keys, prefix, shared };
+    }
+    return { keys: [], prefix, shared };
+  }
+};
+
 const CATEGORIES = [
   { name: "Eggs & Breakfast", color: "var(--cat-breakfast)", items: ["Biscuits","Mini's","Sausage","Scrambled Eggs","Yellow Folds","Egg Whites","Hashbrowns","Breakfast Filet","Spicy Breakfast"] },
   { name: "Chicken", color: "var(--cat-chicken)", items: ["Filet","Spicy","Nuggets","Strips","Expired Cooldown Chicken"] },
