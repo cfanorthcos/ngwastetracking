@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Waste Log</title>
 <style>
 :root{
@@ -26,7 +26,7 @@
   --shadow-lg:0 8px 30px rgba(28,28,30,0.18);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{margin:0;padding:0;}
+html,body{margin:0;padding:0;touch-action:manipulation;}
 body{
   background:linear-gradient(135deg,#FFF3E6 0%, #FFFDFB 45%, #E9FAF7 100%);
   color:var(--ink);
@@ -211,6 +211,49 @@ main{padding:16px 16px 24px;}
 
 .dash-activity-card{background:var(--card);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;max-height:420px;overflow-y:auto;}
 
+/* ---------- Report tab ---------- */
+.app.report-mode .topbar{display:none;}
+
+.rep-header{margin-bottom:16px;}
+.rep-title{font-size:28px;font-weight:800;letter-spacing:-0.02em;}
+.rep-sub{font-size:13px;color:var(--ink2);font-weight:500;margin-top:2px;}
+
+select{
+  font-family:inherit;font-size:13px;font-weight:600;color:var(--ink);
+  background:var(--card);border:none;border-radius:12px;padding:11px 10px;box-shadow:var(--shadow);
+}
+.rep-range-row{margin-bottom:10px;}
+.rep-range-row select{width:100%;}
+.rep-custom-range{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.rep-custom-range input[type="date"]{
+  flex:1;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink);
+  background:var(--card);border:none;border-radius:12px;padding:10px;box-shadow:var(--shadow);
+}
+.rep-custom-range span{font-size:12px;color:var(--ink2);font-weight:600;}
+.rep-custom-range button{
+  background:var(--brand);color:#fff;border:none;border-radius:12px;padding:10px 14px;
+  font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0;
+}
+.rep-filter-row{display:flex;gap:8px;margin-bottom:16px;}
+.rep-filter-row select{flex:1;}
+
+.rep-section{margin-bottom:24px;}
+.rep-section-title{font-size:13px;font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;}
+
+.rep-chart-scroll{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:14px 12px 10px;overflow-x:auto;}
+.rep-chart{display:flex;align-items:flex-end;gap:6px;height:130px;min-width:max-content;}
+.rep-bar{width:26px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+.rep-bar-fill{width:100%;background:linear-gradient(180deg,#FF9A5A,var(--brand));border-radius:6px 6px 2px 2px;min-height:3px;}
+.rep-bar-label{font-size:9px;color:var(--ink2);font-weight:600;margin-top:5px;white-space:nowrap;}
+
+.rep-item-table{background:var(--card);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;}
+.rep-item-row{padding:11px 16px;border-top:1px solid var(--line);}
+.rep-item-row:first-child{border-top:none;}
+.rep-item-main{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+.rep-item-name{font-size:14px;font-weight:700;}
+.rep-item-cost{font-size:13px;font-weight:800;font-family:ui-monospace,monospace;color:var(--brand-dark);flex-shrink:0;}
+.rep-item-sub{font-size:12px;color:var(--ink2);margin-top:2px;}
+
 /* ---------- Bottom tab bar ---------- */
 .tabbar{
   position:fixed;left:0;right:0;bottom:0;z-index:34;
@@ -392,9 +435,84 @@ textarea{
     </div>
   </main>
 
+  <!-- REPORT VIEW -->
+  <main id="reportView" hidden>
+    <div class="rep-header">
+      <div class="rep-title">Report</div>
+      <div class="rep-sub">Trends &amp; history across any date range</div>
+    </div>
+
+    <div class="rep-range-row">
+      <select id="repRangePreset">
+        <option value="today">Today</option>
+        <option value="yesterday">Yesterday</option>
+        <option value="7" selected>Last 7 Days</option>
+        <option value="30">Last 30 Days</option>
+        <option value="month">This Month</option>
+        <option value="custom">Custom Range…</option>
+      </select>
+    </div>
+    <div class="rep-custom-range" id="repCustomRange" hidden>
+      <input type="date" id="repStartDate">
+      <span>to</span>
+      <input type="date" id="repEndDate">
+      <button id="repApplyRange">Apply</button>
+    </div>
+    <div class="rep-filter-row">
+      <select id="repCategoryFilter"><option value="all">All Categories</option></select>
+      <select id="repDaypartFilter"><option value="all">All Dayparts</option></select>
+    </div>
+
+    <div class="stat-row" style="margin-top:0;margin-bottom:24px;">
+      <div class="stat-chip cost">
+        <div class="label">Total Cost</div>
+        <div class="value" id="repTotalCost">—</div>
+      </div>
+      <div class="stat-chip entries">
+        <div class="label">Entries</div>
+        <div class="value" id="repTotalEntries">—</div>
+      </div>
+      <div class="stat-chip">
+        <div class="label">Avg $ / Day</div>
+        <div class="value" id="repAvgPerDay">—</div>
+      </div>
+    </div>
+
+    <div class="rep-section">
+      <div class="rep-section-title">Cost Trend</div>
+      <div class="rep-chart-scroll"><div class="rep-chart" id="repTrendChart"></div></div>
+    </div>
+
+    <div class="rep-section">
+      <div class="rep-section-title">By Category</div>
+      <div class="dash-leaderboard" id="repCategoryBars"></div>
+    </div>
+
+    <div class="rep-section">
+      <div class="rep-section-title">By Daypart</div>
+      <div class="dash-leaderboard" id="repDaypartBars"></div>
+    </div>
+
+    <div class="rep-section">
+      <div class="rep-section-title">By Item</div>
+      <div class="rep-item-table" id="repItemTable"></div>
+    </div>
+
+    <div class="rep-section">
+      <div class="rep-section-title">Goal Compliance (range total vs. daily goal × days)</div>
+      <div class="dash-goal-list" id="repGoalList"></div>
+    </div>
+
+    <div class="rep-section">
+      <div class="rep-section-title">Entries</div>
+      <div class="feed-card" id="repFeed"></div>
+    </div>
+  </main>
+
   <div class="tabbar">
     <button class="tabbar-btn active" data-tab="log"><span class="icon">📋</span>Log</button>
     <button class="tabbar-btn" data-tab="dashboard"><span class="icon">📺</span>Dashboard</button>
+    <button class="tabbar-btn" data-tab="report"><span class="icon">📈</span>Report</button>
   </div>
 
 </div>
@@ -433,7 +551,7 @@ textarea{
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import {
   getFirestore, doc, getDoc, setDoc, deleteDoc,
-  collection, query, where, getDocs, documentId
+  collection, query, where, getDocs, documentId, onSnapshot, orderBy
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -496,6 +614,19 @@ window.storage = {
     return { keys: [], prefix, shared };
   }
 };
+
+// Fetch every entry whose timestamp falls within [startDate, endDateExclusive).
+// Used for one-off historical lookups (Report tab) outside the live "today" listener.
+async function fetchEntriesInRange(startDate, endDateExclusive){
+  const q = query(
+    collection(db, ENTRIES_COLLECTION),
+    where('ts', '>=', startDate.toISOString()),
+    where('ts', '<', endDateExclusive.toISOString()),
+    orderBy('ts', 'asc')
+  );
+  const snaps = await getDocs(q);
+  return snaps.docs.map(d => ({ ...d.data(), __key: 'entry:' + d.id }));
+}
 
 const CATEGORIES = [
   { name: "Eggs & Breakfast", color: "var(--cat-breakfast)", items: ["Biscuits","Mini's","Sausage","Scrambled Eggs","Yellow Folds","Egg Whites","Hashbrowns","Breakfast Filet","Spicy Breakfast"] },
@@ -967,33 +1098,15 @@ function setActiveTab(which){
   document.querySelectorAll('.tabbar-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === which));
   document.getElementById('logView').hidden = which !== 'log';
   document.getElementById('dashboardView').hidden = which !== 'dashboard';
+  document.getElementById('reportView').hidden = which !== 'report';
   document.querySelector('.app').classList.toggle('dashboard-mode', which === 'dashboard');
+  document.querySelector('.app').classList.toggle('report-mode', which === 'report');
   if(which === 'dashboard') renderDashboard();
+  if(which === 'report') loadReport();
 }
 document.querySelectorAll('.tabbar-btn').forEach(btn => btn.addEventListener('click', ()=> setActiveTab(btn.dataset.tab)));
 
 // ---------- storage fetch helpers ----------
-async function fetchKeysWithPrefix(prefix){
-  try{ const res = await window.storage.list(prefix, true); return (res && res.keys) ? res.keys : []; }
-  catch(e){ return []; }
-}
-async function fetchEntriesForKeys(keys){
-  const entries = []; const CHUNK = 12;
-  for(let i=0; i<keys.length; i+=CHUNK){
-    const chunk = keys.slice(i, i+CHUNK);
-    const results = await Promise.all(chunk.map(async k => {
-      try{
-        const res = await window.storage.get(k, true);
-        if(!res) return null;
-        const parsed = JSON.parse(res.value);
-        parsed.__key = k;
-        return parsed;
-      }catch(e){ return null; }
-    }));
-    results.forEach(r => { if(r) entries.push(r); });
-  }
-  return entries;
-}
 function catColorFor(catName){
   const cat = CATEGORIES.find(c => c.name === catName);
   return cat ? cat.color : 'var(--ink3)';
@@ -1045,14 +1158,42 @@ function renderFeedRows(entries, targetEl, opts){
   });
 }
 
-async function loadTodayFeed(){
-  const todayPrefix = `entry:${dateKeyFromDate(new Date())}`;
-  const keys = await fetchKeysWithPrefix(todayPrefix);
-  const entries = await fetchEntriesForKeys(keys);
-  todayEntriesCache = entries;
-  updateStatsStrip(entries);
-  refreshAllViews();
+// ---------- live "today" listener ----------
+// Instead of polling on a timer, we subscribe to Firestore and get pushed
+// updates the instant anyone (on any device) logs, edits, or deletes an entry.
+let unsubscribeTodayListener = null;
+let listenerDateKey = null;
+function todayRangeBounds(){
+  const start = new Date(); start.setHours(0,0,0,0);
+  const end = new Date(start); end.setDate(end.getDate() + 1);
+  return { start, end };
 }
+function setupTodayListener(){
+  if(unsubscribeTodayListener) unsubscribeTodayListener();
+  const { start, end } = todayRangeBounds();
+  listenerDateKey = dateKeyFromDate(new Date());
+  const q = query(
+    collection(db, ENTRIES_COLLECTION),
+    where('ts', '>=', start.toISOString()),
+    where('ts', '<', end.toISOString())
+  );
+  unsubscribeTodayListener = onSnapshot(q, (snapshot) => {
+    todayEntriesCache = snapshot.docs.map(d => ({ ...d.data(), __key: 'entry:' + d.id }));
+    updateStatsStrip(todayEntriesCache);
+    refreshAllViews();
+  }, (err) => {
+    showError('Live updates disconnected — check connection.');
+  });
+}
+// If this page is left open across midnight (e.g. mirrored on a TV), re-point the listener at the new day.
+setInterval(() => {
+  if(dateKeyFromDate(new Date()) !== listenerDateKey) setupTodayListener();
+}, 5 * 60 * 1000);
+
+// loadTodayFeed is a no-op now — kept so existing call sites after save/delete don't need to change.
+// The realtime listener above already keeps todayEntriesCache and the UI in sync automatically.
+async function loadTodayFeed(){}
+
 function updateStatsStrip(entries){
   document.getElementById('statCount').textContent = entries.length;
   const { total, unpriced } = sumCost(entries);
@@ -1156,11 +1297,203 @@ function renderDashboard(){
   document.getElementById('dashUpdated').textContent = `Updated ${formatTime(new Date().toISOString())}`;
 }
 
+// ---------- report (trends & history across any date range) ----------
+function populateReportFilters(){
+  const catSel = document.getElementById('repCategoryFilter');
+  CATEGORIES.forEach(cat => {
+    const opt = document.createElement('option'); opt.value = cat.name; opt.textContent = cat.name;
+    catSel.appendChild(opt);
+  });
+  const dpSel = document.getElementById('repDaypartFilter');
+  DAYPARTS.forEach(dp => {
+    const opt = document.createElement('option'); opt.value = dp; opt.textContent = dp;
+    dpSel.appendChild(opt);
+  });
+}
+populateReportFilters();
+
+function reportRangeBounds(preset){
+  const start = new Date(), end = new Date();
+  if(preset === 'today'){
+    start.setHours(0,0,0,0); end.setTime(start.getTime()); end.setDate(end.getDate()+1);
+  } else if(preset === 'yesterday'){
+    end.setHours(0,0,0,0); start.setTime(end.getTime()); start.setDate(start.getDate()-1);
+  } else if(preset === '7'){
+    end.setHours(0,0,0,0); end.setDate(end.getDate()+1); start.setTime(end.getTime()); start.setDate(start.getDate()-7);
+  } else if(preset === '30'){
+    end.setHours(0,0,0,0); end.setDate(end.getDate()+1); start.setTime(end.getTime()); start.setDate(start.getDate()-30);
+  } else if(preset === 'month'){
+    start.setDate(1); start.setHours(0,0,0,0);
+    end.setTime(start.getTime()); end.setMonth(end.getMonth()+1);
+  }
+  return { start, end };
+}
+
+document.getElementById('repRangePreset').addEventListener('change', (e)=>{
+  document.getElementById('repCustomRange').hidden = e.target.value !== 'custom';
+  if(e.target.value !== 'custom') loadReport();
+});
+document.getElementById('repApplyRange').addEventListener('click', loadReport);
+document.getElementById('repCategoryFilter').addEventListener('change', loadReport);
+document.getElementById('repDaypartFilter').addEventListener('change', loadReport);
+
+async function loadReport(){
+  const preset = document.getElementById('repRangePreset').value;
+  let start, end;
+  if(preset === 'custom'){
+    const sVal = document.getElementById('repStartDate').value;
+    const eVal = document.getElementById('repEndDate').value;
+    if(!sVal || !eVal) return;
+    start = new Date(sVal + 'T00:00:00');
+    end = new Date(eVal + 'T00:00:00'); end.setDate(end.getDate()+1);
+  } else {
+    ({ start, end } = reportRangeBounds(preset));
+  }
+
+  const feedEl = document.getElementById('repFeed');
+  feedEl.innerHTML = '<div class="loading-text">loading report…</div>';
+
+  let entries;
+  try{
+    entries = await fetchEntriesInRange(start, end);
+  }catch(e){
+    feedEl.innerHTML = '';
+    showError('Could not load the report — check connection and try again.');
+    return;
+  }
+
+  const catFilter = document.getElementById('repCategoryFilter').value;
+  const dpFilter = document.getElementById('repDaypartFilter').value;
+  if(catFilter !== 'all') entries = entries.filter(e => e.category === catFilter);
+  if(dpFilter !== 'all') entries = entries.filter(e => e.daypart === dpFilter);
+
+  renderReportSummary(entries, start, end);
+  renderReportTrendChart(entries, start, end);
+  renderReportCategoryBars(entries);
+  renderReportDaypartBars(entries);
+  renderReportItemTable(entries);
+  renderReportGoalList(entries, start, end);
+
+  const sorted = entries.slice().sort((a,b) => b.ts.localeCompare(a.ts)).slice(0, 200);
+  renderFeedRows(sorted, feedEl, { groupByDay: true, emptyHint: ' for this range' });
+}
+
+function renderReportSummary(entries, start, end){
+  const { total, unpriced } = sumCost(entries);
+  document.getElementById('repTotalCost').textContent = formatCost(total) + (unpriced > 0 ? '*' : '');
+  document.getElementById('repTotalEntries').textContent = entries.length;
+  const days = Math.max(1, Math.round((end - start) / 86400000));
+  document.getElementById('repAvgPerDay').textContent = formatCost(total / days);
+}
+
+function renderReportTrendChart(entries, start, end){
+  const days = Math.max(1, Math.round((end - start) / 86400000));
+  const byDay = {};
+  entries.forEach(e => {
+    const dKey = dateKeyFromDate(new Date(e.ts));
+    const c = costForEntry(e);
+    if(c != null) byDay[dKey] = (byDay[dKey] || 0) + c;
+  });
+  const maxVal = Math.max(1, ...Object.values(byDay));
+  const showLabels = days <= 14;
+  let html = '';
+  for(let i = 0; i < days; i++){
+    const d = new Date(start); d.setDate(d.getDate() + i);
+    const val = byDay[dateKeyFromDate(d)] || 0;
+    const pct = Math.max(2, (val / maxVal) * 100);
+    const label = `${d.getMonth()+1}/${d.getDate()}`;
+    html += `<div class="rep-bar" title="${label}: ${formatCost(val)}">
+      <div class="rep-bar-fill" style="height:${pct}%"></div>
+      ${showLabels ? `<div class="rep-bar-label">${label}</div>` : ''}
+    </div>`;
+  }
+  document.getElementById('repTrendChart').innerHTML = html || '<div class="dash-empty">No data for this range.</div>';
+}
+
+function renderReportCategoryBars(entries){
+  const costByCat = {};
+  entries.forEach(e => { const c = costForEntry(e); if(c != null) costByCat[e.category] = (costByCat[e.category]||0) + c; });
+  const rows = CATEGORIES.map(cat => ({ name: cat.name, color: cat.color, cost: costByCat[cat.name] || 0 }));
+  const maxCat = Math.max(1, ...rows.map(r => r.cost));
+  const el = document.getElementById('repCategoryBars');
+  el.innerHTML = rows.every(r => r.cost === 0) ? '<div class="dash-empty">No data for this range.</div>' : rows.map(c => `
+    <div class="dash-cat-row">
+      <span class="dash-cat-name">${escapeHtml(c.name)}</span>
+      <div class="dash-cat-track"><div class="dash-cat-fill" style="width:${(c.cost/maxCat)*100}%;background:${c.color}"></div></div>
+      <span class="dash-cat-cost">${formatCost(c.cost)}</span>
+    </div>`).join('');
+}
+
+function renderReportDaypartBars(entries){
+  const costByDp = {};
+  entries.forEach(e => { const c = costForEntry(e); if(c != null) costByDp[e.daypart] = (costByDp[e.daypart]||0) + c; });
+  const rows = DAYPARTS.map(dp => ({ name: dp, color: DAYPART_COLORS[dp] || 'var(--brand)', cost: costByDp[dp] || 0 }));
+  const maxDp = Math.max(1, ...rows.map(r => r.cost));
+  const el = document.getElementById('repDaypartBars');
+  el.innerHTML = rows.every(r => r.cost === 0) ? '<div class="dash-empty">No data for this range.</div>' : rows.map(c => `
+    <div class="dash-cat-row">
+      <span class="dash-cat-name">${escapeHtml(c.name)}</span>
+      <div class="dash-cat-track"><div class="dash-cat-fill" style="width:${(c.cost/maxDp)*100}%;background:${c.color}"></div></div>
+      <span class="dash-cat-cost">${formatCost(c.cost)}</span>
+    </div>`).join('');
+}
+
+function renderReportItemTable(entries){
+  const byItem = {};
+  entries.forEach(e => {
+    if(!byItem[e.item]) byItem[e.item] = { byUnit: {}, cost: 0, hasCost: false, count: 0 };
+    const s = byItem[e.item];
+    s.byUnit[e.unit] = (s.byUnit[e.unit] || 0) + (parseFloat(e.qty) || 0);
+    s.count++;
+    const c = costForEntry(e);
+    if(c != null){ s.cost += c; s.hasCost = true; }
+  });
+  const rows = Object.entries(byItem).sort((a,b) => b[1].cost - a[1].cost);
+  const el = document.getElementById('repItemTable');
+  el.innerHTML = rows.length === 0 ? '<div class="dash-empty">No data for this range.</div>' : rows.map(([item, s]) => {
+    const qtyStr = Object.entries(s.byUnit).map(([u,q]) => displayQtyUnit(q,u)).join(', ');
+    return `<div class="rep-item-row">
+      <div class="rep-item-main">
+        <span class="rep-item-name">${escapeHtml(item)}</span>
+        <span class="rep-item-cost">${s.hasCost ? formatCost(s.cost) : '—'}</span>
+      </div>
+      <div class="rep-item-sub">${qtyStr} · ${s.count} entr${s.count===1?'y':'ies'}</div>
+    </div>`;
+  }).join('');
+}
+
+function rangeTotalForGoalUnit(entries, item, unit){
+  let total = 0, allConvertible = true;
+  entries.forEach(e => {
+    if(e.item !== item) return;
+    const converted = convertQty(item, e.qty, e.unit, unit);
+    if(converted == null) allConvertible = false; else total += converted;
+  });
+  return { total, allConvertible };
+}
+function renderReportGoalList(entries, start, end){
+  const days = Math.max(1, Math.round((end - start) / 86400000));
+  const list = document.getElementById('repGoalList');
+  list.innerHTML = Object.entries(GOALS).map(([item, goal]) => {
+    const { total, allConvertible } = rangeTotalForGoalUnit(entries, item, goal.unit);
+    const target = goal.amount * days;
+    const pct = target > 0 ? Math.min(100, (total/target)*100) : (total > 0 ? 100 : 0);
+    const over = total > target;
+    return `
+      <div class="dash-goal-row">
+        <div class="dgr-top">
+          <span class="dgr-name">${escapeHtml(item)}</span>
+          <span class="dgr-val ${over ? 'over' : ''}">${displayQtyUnit(total, goal.unit)} / ${displayQtyUnit(target, goal.unit)}${allConvertible ? '' : ' *'}</span>
+        </div>
+        <div class="dgr-track"><div class="dgr-fill ${over ? 'over' : ''}" style="width:${pct}%"></div></div>
+      </div>`;
+  }).join('');
+}
+
 // ---------- boot ----------
 (async function init(){
   await preloadOptionMemory();
-  await loadTodayFeed();
-  setInterval(loadTodayFeed, 30000); // keep the dashboard live for unattended TV display
+  setupTodayListener();
 })();
 </script>
 </body>
