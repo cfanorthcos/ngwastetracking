@@ -54,6 +54,13 @@ body{
   padding:8px 12px;font-size:12px;font-weight:700;box-shadow:var(--shadow);white-space:nowrap;
 }
 .credit-btn:active{transform:scale(0.97);}
+.topbar-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+.name-btn{
+  display:inline-flex;align-items:center;gap:4px;background:var(--card);color:var(--ink);
+  border:1.5px solid var(--line);border-radius:13px;padding:7px 11px;font-size:11px;font-weight:700;
+  box-shadow:var(--shadow);white-space:nowrap;cursor:pointer;max-width:160px;overflow:hidden;text-overflow:ellipsis;
+}
+.name-btn:active{transform:scale(0.97);}
 
 /* ---------- Stat / progress chips ---------- */
 .stat-row{display:flex;gap:10px;margin-top:14px;}
@@ -96,6 +103,11 @@ main{padding:16px 16px 24px;}
   font-size:13px;font-weight:600;margin:0 16px 12px;display:none;
 }
 .error-banner.show{display:block;}
+.offline-banner{
+  background:var(--brand);color:#fff;padding:10px 14px;border-radius:12px;
+  font-size:12px;font-weight:700;margin:0 16px 12px;display:none;text-align:center;
+}
+.offline-banner.show{display:block;}
 
 /* ---------- Category cards ---------- */
 .category-card{
@@ -139,6 +151,8 @@ main{padding:16px 16px 24px;}
 .feed-tags{display:flex;gap:6px;margin-top:3px;}
 .feed-tag{font-size:10px;font-weight:600;color:var(--ink2);background:var(--bg);border-radius:6px;padding:2px 7px;}
 .feed-note{font-size:12px;color:var(--ink2);margin-top:3px;font-style:italic;}
+.feed-edit{background:none;border:none;color:var(--ink3);font-size:14px;cursor:pointer;padding:3px 6px;}
+.feed-edit:active{color:var(--brand);}
 .feed-del{background:none;border:none;color:var(--ink3);font-size:15px;cursor:pointer;padding:3px 6px;}
 .feed-del:active{color:var(--danger);}
 
@@ -215,6 +229,12 @@ main{padding:16px 16px 24px;}
 .app.report-mode .topbar{display:none;}
 
 .rep-header{margin-bottom:16px;}
+.rep-header-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.rep-export-btn{
+  flex-shrink:0;background:var(--card);color:var(--ink);border:1.5px solid var(--line);
+  border-radius:13px;padding:9px 13px;font-size:12px;font-weight:700;box-shadow:var(--shadow);cursor:pointer;
+}
+.rep-export-btn:active{transform:scale(0.97);}
 .rep-title{font-size:28px;font-weight:800;letter-spacing:-0.02em;}
 .rep-sub{font-size:13px;color:var(--ink2);font-weight:500;margin-top:2px;}
 
@@ -291,6 +311,13 @@ select{
 
 .field-label{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink2);font-weight:700;margin-bottom:8px;display:block;}
 
+.sheet-daypart-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+.sheet-daypart-chip{
+  flex:1 1 30%;text-align:center;border-radius:10px;padding:7px 4px;font-size:12px;font-weight:700;
+  cursor:pointer;border:1.5px solid var(--line);color:var(--ink2);background:var(--card);
+}
+.sheet-daypart-chip.selected{background:var(--dp-color, var(--brand));border-color:var(--dp-color, var(--brand));color:#fff;}
+
 .type-toggle{display:flex;gap:7px;margin-bottom:16px;}
 .type-toggle button{
   flex:1;background:var(--card);border:none;border-radius:12px;padding:10px;box-shadow:var(--shadow);
@@ -350,7 +377,10 @@ textarea{
         <div class="title-sub" id="dateStamp"></div>
         <div class="tracking-line" id="trackingLine"></div>
       </div>
-      <a class="credit-btn" href="https://docs.google.com/forms/d/e/1FAIpQLSdEi9Rn6w4yqppdGu-goDnrFhU_tvK_Dqezw2ALiT1c8scrNA/viewform?usp=header" target="_blank" rel="noopener noreferrer">📝 Credit Form</a>
+      <div class="topbar-right">
+        <a class="credit-btn" href="https://docs.google.com/forms/d/e/1FAIpQLSdEi9Rn6w4yqppdGu-goDnrFhU_tvK_Dqezw2ALiT1c8scrNA/viewform?usp=header" target="_blank" rel="noopener noreferrer">📝 Credit Form</a>
+        <button class="name-btn" id="nameBtn">👤 <span id="nameBtnLabel">Set name</span></button>
+      </div>
     </div>
     <div class="stat-row">
       <div class="stat-chip entries">
@@ -377,6 +407,7 @@ textarea{
   </div>
 
   <div class="error-banner" id="errorBanner"></div>
+  <div class="offline-banner" id="offlineBanner">📡 Offline — entries save locally and will sync once you're back online.</div>
 
   <!-- LOG VIEW -->
   <main id="logView">
@@ -438,8 +469,13 @@ textarea{
   <!-- REPORT VIEW -->
   <main id="reportView" hidden>
     <div class="rep-header">
-      <div class="rep-title">Report</div>
-      <div class="rep-sub">Trends &amp; history across any date range</div>
+      <div class="rep-header-row">
+        <div>
+          <div class="rep-title">Report</div>
+          <div class="rep-sub">Trends &amp; history across any date range</div>
+        </div>
+        <button class="rep-export-btn" id="repExportBtn">⬇️ CSV</button>
+      </div>
     </div>
 
     <div class="rep-range-row">
@@ -499,6 +535,11 @@ textarea{
     </div>
 
     <div class="rep-section">
+      <div class="rep-section-title">By Team Member</div>
+      <div class="dash-leaderboard" id="repPersonBars"></div>
+    </div>
+
+    <div class="rep-section">
       <div class="rep-section-title">Goal Compliance (range total vs. daily goal × days)</div>
       <div class="dash-goal-list" id="repGoalList"></div>
     </div>
@@ -530,6 +571,9 @@ textarea{
     </div>
     <div class="sheet-done-note" id="sheetDoneNote" hidden></div>
 
+    <span class="field-label">Daypart</span>
+    <div class="sheet-daypart-row" id="sheetDaypartRow"></div>
+
     <div class="type-toggle" id="typeToggle" hidden></div>
     <div id="qtySection"></div>
 
@@ -543,6 +587,20 @@ textarea{
   </div>
 </div>
 
+<!-- NAME SHEET -->
+<div class="sheet-backdrop" id="nameSheetBackdrop" hidden>
+  <div class="entry-sheet">
+    <div class="sheet-handle"></div>
+    <h2 class="sheet-title">Who's logging?</h2>
+    <div class="sheet-sub" style="margin-bottom:16px;">Shown on entries so the team knows who logged what.</div>
+    <input type="text" id="nameInput" class="custom-unit-input" placeholder="Your name" style="margin-bottom:18px;">
+    <div class="sheet-actions">
+      <button class="btn btn-cancel" id="nameSheetCancel">Cancel</button>
+      <button class="btn btn-log" id="nameSheetSave" style="background:var(--brand);">Save</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 // ---------- Firebase / Firestore setup ----------
 // This app was originally built on Claude's artifact-only window.storage API.
@@ -550,7 +608,8 @@ textarea{
 // but keep the exact same get/set/delete/list shape so none of the app logic below has to change.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import {
-  getFirestore, doc, getDoc, setDoc, deleteDoc,
+  initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+  doc, getDoc, setDoc, deleteDoc,
   collection, query, where, getDocs, documentId, onSnapshot, orderBy
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
@@ -564,7 +623,11 @@ const firebaseConfig = {
   measurementId: "G-HPVPL9FSDH"
 };
 const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
+// Persistent local cache: reads come from disk when offline, writes queue locally
+// and sync automatically the moment connectivity returns.
+const db = initializeFirestore(firebaseApp, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+});
 const ENTRIES_COLLECTION = 'entries';
 
 // Shared "entry:" keys go to Firestore (synced across every device/team member).
@@ -750,10 +813,36 @@ function getVisibleItemCount(daypart){
 
 let selectedDaypart = DAYPARTS[0];
 let currentItem = null, currentCategory = null;
-let sheetOptions = [], sheetSelectedKey = null;
+let sheetOptions = [], sheetSelectedKey = null, sheetDaypart = null;
+let editingKey = null; // set when the sheet is editing an existing entry instead of creating a new one
 let weightMode = 'lboz'; // 'lboz' or 'dec'
 let lastOptionCache = {};   // item -> option key
 let todayEntriesCache = [];
+let feedEntryLookup = {};   // __key -> entry, refreshed whenever a feed list renders (used by Edit)
+let lastReportEntries = []; // entries currently shown in the Report tab (used by CSV export)
+let currentUserName = localStorage.getItem('loggedByName') || '';
+
+// ---------- "who's logging" attribution ----------
+function renderNameButton(){
+  document.getElementById('nameBtnLabel').textContent = currentUserName || 'Set name';
+}
+renderNameButton();
+document.getElementById('nameBtn').addEventListener('click', ()=>{
+  document.getElementById('nameInput').value = currentUserName;
+  document.getElementById('nameSheetBackdrop').hidden = false;
+});
+document.getElementById('nameSheetCancel').addEventListener('click', ()=>{
+  document.getElementById('nameSheetBackdrop').hidden = true;
+});
+document.getElementById('nameSheetBackdrop').addEventListener('click', (e)=>{
+  if(e.target.id === 'nameSheetBackdrop') document.getElementById('nameSheetBackdrop').hidden = true;
+});
+document.getElementById('nameSheetSave').addEventListener('click', ()=>{
+  currentUserName = document.getElementById('nameInput').value.trim();
+  localStorage.setItem('loggedByName', currentUserName);
+  renderNameButton();
+  document.getElementById('nameSheetBackdrop').hidden = true;
+});
 
 // ---------- generic helpers ----------
 function pad(n){ return String(n).padStart(2,'0'); }
@@ -790,6 +879,12 @@ function showError(msg){
   el.textContent = msg; el.classList.add('show');
   setTimeout(()=> el.classList.remove('show'), 4000);
 }
+function updateOfflineBanner(){
+  document.getElementById('offlineBanner').classList.toggle('show', !navigator.onLine);
+}
+window.addEventListener('online', updateOfflineBanner);
+window.addEventListener('offline', updateOfflineBanner);
+updateOfflineBanner();
 function dateOffset(days){ const d = new Date(); d.setDate(d.getDate() - days); return d; }
 
 // ---------- daypart selection (status chips double as the selector) ----------
@@ -930,29 +1025,79 @@ async function setWeightMode(mode){
 }
 
 // ---------- entry sheet ----------
-function openSheet(item, cat){
+function renderSheetDaypartRow(){
+  const row = document.getElementById('sheetDaypartRow');
+  row.innerHTML = '';
+  DAYPARTS.forEach(dp => {
+    const chip = document.createElement('button');
+    chip.className = 'sheet-daypart-chip' + (dp === sheetDaypart ? ' selected' : '');
+    chip.style.setProperty('--dp-color', DAYPART_COLORS[dp] || 'var(--brand)');
+    chip.textContent = dp;
+    chip.addEventListener('click', ()=>{ sheetDaypart = dp; renderSheetDaypartRow(); });
+    row.appendChild(chip);
+  });
+}
+
+function openSheet(item, cat, editEntry){
   currentItem = item; currentCategory = cat.name;
   sheetOptions = getUnitOptions(item);
-  sheetSelectedKey = lastOptionCache[item] || sheetOptions[0].key;
+  editingKey = editEntry ? editEntry.__key : null;
+  sheetDaypart = editEntry ? editEntry.daypart : selectedDaypart;
+
+  // figure out which unit-option this entry uses, for edit mode
+  let presetOptKey = lastOptionCache[item] || sheetOptions[0].key;
+  if(editEntry){
+    const match = sheetOptions.find(o => (o.kind === 'weight' ? 'lb' : o.key) === editEntry.unit);
+    presetOptKey = match ? match.key : sheetOptions[0].key;
+  }
+  sheetSelectedKey = presetOptKey;
 
   document.getElementById('sheetItemName').textContent = item;
   document.getElementById('sheetCategoryName').textContent = cat.name;
   document.getElementById('sheetDot').style.background = cat.color;
-  document.getElementById('noteInput').value = '';
+  document.getElementById('noteInput').value = editEntry ? (editEntry.note || '') : '';
+  document.getElementById('sheetLog').textContent = editEntry ? 'Save Changes' : 'Log It';
+
+  renderSheetDaypartRow();
 
   const counts = getTodayDaypartCounts();
   const c = counts[item] || 0;
   const doneNote = document.getElementById('sheetDoneNote');
-  if(c > 0){ doneNote.hidden = false; doneNote.textContent = `✓ Already logged ${c}x for ${selectedDaypart} today`; }
-  else doneNote.hidden = true;
+  if(editEntry){
+    doneNote.hidden = false;
+    doneNote.textContent = `✏️ Editing entry logged ${formatTime(editEntry.ts)}${editEntry.loggedBy ? ' by ' + editEntry.loggedBy : ''}`;
+  } else if(c > 0){
+    doneNote.hidden = false; doneNote.textContent = `✓ Already logged ${c}x for ${selectedDaypart} today`;
+  } else {
+    doneNote.hidden = true;
+  }
 
   renderTypeToggle(cat.color);
   renderQtySection(cat.color);
 
+  // pre-fill the quantity fields when editing
+  if(editEntry){
+    const opt = sheetOptions.find(o => o.key === sheetSelectedKey);
+    if(opt.kind === 'count' || opt.kind === 'volume'){
+      document.getElementById('qtyInput').value = editEntry.qty;
+    } else if(opt.kind === 'weight'){
+      if(weightMode === 'lboz'){
+        document.getElementById('weightLbInput').value = Math.floor(editEntry.qty);
+        document.getElementById('weightOzInput').value = Math.round((editEntry.qty - Math.floor(editEntry.qty)) * 16 * 10) / 10;
+      } else {
+        document.getElementById('weightDecInput').value = Math.round(editEntry.qty * 100) / 100;
+      }
+    }
+  }
+
   document.getElementById('sheetLog').style.background = cat.color;
   document.getElementById('sheetBackdrop').hidden = false;
 }
-function closeSheet(){ document.getElementById('sheetBackdrop').hidden = true; }
+function closeSheet(){
+  document.getElementById('sheetBackdrop').hidden = true;
+  editingKey = null;
+  document.getElementById('sheetLog').textContent = 'Log It';
+}
 document.getElementById('sheetCancel').addEventListener('click', closeSheet);
 document.getElementById('sheetBackdrop').addEventListener('click', (e)=>{ if(e.target.id === 'sheetBackdrop') closeSheet(); });
 
@@ -1051,7 +1196,7 @@ function renderWeightFields(){
   }
 }
 
-document.getElementById('sheetLog').addEventListener('click', async ()=>{
+document.getElementById('sheetLog').addEventListener('click', ()=>{
   const opt = sheetOptions.find(o => o.key === sheetSelectedKey);
   let qty = 0, unit = '';
 
@@ -1076,21 +1221,32 @@ document.getElementById('sheetLog').addEventListener('click', async ()=>{
 
   const note = document.getElementById('noteInput').value.trim();
   const now = new Date();
-  const entry = { item: currentItem, category: currentCategory, daypart: selectedDaypart, qty, unit, note, ts: now.toISOString() };
-  const key = makeEntryKey(now);
-  const btn = document.getElementById('sheetLog');
-  btn.disabled = true; btn.textContent = 'Logging…';
-  try{
-    const res = await window.storage.set(key, JSON.stringify(entry), true);
-    if(!res) throw new Error('no result');
-    await rememberOption(currentItem, sheetSelectedKey);
-    closeSheet();
-    loadTodayFeed();
-  }catch(e){
-    showError('Could not save entry — check connection and try again.');
-  }finally{
-    btn.disabled = false; btn.textContent = 'Log It';
+  let key, entry;
+
+  if(editingKey){
+    const original = feedEntryLookup[editingKey] || {};
+    key = editingKey;
+    entry = {
+      item: currentItem, category: currentCategory, daypart: sheetDaypart,
+      qty, unit, note, ts: original.ts || now.toISOString()
+    };
+    if(original.loggedBy) entry.loggedBy = original.loggedBy;
+    if(currentUserName) entry.editedBy = currentUserName;
+    entry.editedAt = now.toISOString();
+  } else {
+    key = makeEntryKey(now);
+    entry = { item: currentItem, category: currentCategory, daypart: sheetDaypart, qty, unit, note, ts: now.toISOString() };
+    if(currentUserName) entry.loggedBy = currentUserName;
   }
+
+  // Optimistic: close immediately instead of waiting on a full server round-trip.
+  // Firestore's offline cache + our realtime listener reflect this right away,
+  // even if the write is still queued (e.g. on a bad connection) — it'll sync automatically.
+  window.storage.set(key, JSON.stringify(entry), true).catch(()=>{
+    showError('Could not save — check connection. It will retry automatically once reconnected.');
+  });
+  rememberOption(currentItem, sheetSelectedKey);
+  closeSheet();
 });
 
 // ---------- tab navigation ----------
@@ -1125,6 +1281,7 @@ function renderFeedRows(entries, targetEl, opts){
   const yest = dateKeyFromDate(dateOffset(1));
 
   entries.forEach(en => {
+    feedEntryLookup[en.__key] = en;
     if(opts.groupByDay){
       const dKey = dateKeyFromDate(new Date(en.ts));
       if(dKey !== lastDay){
@@ -1139,21 +1296,34 @@ function renderFeedRows(entries, targetEl, opts){
         <div class="feed-time">${formatTime(en.ts)}</div>
         <div class="feed-body">
           <div class="feed-item">${escapeHtml(en.item)} — <span class="feed-qty">${displayQtyUnit(en.qty, en.unit)}</span></div>
-          <div class="feed-tags">${en.daypart ? `<span class="feed-tag">${escapeHtml(en.daypart)}</span>` : ''}</div>
+          <div class="feed-tags">
+            ${en.daypart ? `<span class="feed-tag">${escapeHtml(en.daypart)}</span>` : ''}
+            ${en.loggedBy ? `<span class="feed-tag">👤 ${escapeHtml(en.loggedBy)}</span>` : ''}
+            ${en.editedBy ? `<span class="feed-tag">✏️ ${escapeHtml(en.editedBy)}</span>` : ''}
+          </div>
           ${en.note ? `<div class="feed-note">"${escapeHtml(en.note)}"</div>` : ''}
         </div>
+        <button class="feed-edit" data-key="${en.__key}" title="Edit entry">✏️</button>
         <button class="feed-del" data-key="${en.__key}" title="Delete entry">✕</button>
       </div>`;
   });
   targetEl.innerHTML = html;
+  targetEl.querySelectorAll('.feed-edit').forEach(btn => {
+    btn.addEventListener('click', ()=>{
+      const entry = feedEntryLookup[btn.dataset.key];
+      if(!entry) return;
+      const cat = ITEM_TO_CAT[entry.item] || { name: entry.category, color: catColorFor(entry.category) };
+      openSheet(entry.item, cat, entry);
+    });
+  });
   targetEl.querySelectorAll('.feed-del').forEach(btn => {
-    btn.addEventListener('click', async ()=>{
+    btn.addEventListener('click', ()=>{
       const key = btn.dataset.key;
       btn.disabled = true;
-      try{
-        await window.storage.delete(key, true);
-        loadTodayFeed();
-      }catch(e){ showError('Could not delete entry.'); btn.disabled = false; }
+      // Optimistic: remove the row immediately rather than waiting on a server round-trip.
+      window.storage.delete(key, true).catch(()=> showError('Could not delete entry — check connection.'));
+      const row = btn.closest('.feed-row');
+      if(row) row.remove();
     });
   });
 }
@@ -1367,11 +1537,14 @@ async function loadReport(){
   if(catFilter !== 'all') entries = entries.filter(e => e.category === catFilter);
   if(dpFilter !== 'all') entries = entries.filter(e => e.daypart === dpFilter);
 
+  lastReportEntries = entries;
+
   renderReportSummary(entries, start, end);
   renderReportTrendChart(entries, start, end);
   renderReportCategoryBars(entries);
   renderReportDaypartBars(entries);
   renderReportItemTable(entries);
+  renderReportPersonBars(entries);
   renderReportGoalList(entries, start, end);
 
   const sorted = entries.slice().sort((a,b) => b.ts.localeCompare(a.ts)).slice(0, 200);
@@ -1462,6 +1635,24 @@ function renderReportItemTable(entries){
   }).join('');
 }
 
+function renderReportPersonBars(entries){
+  const costByPerson = {};
+  entries.forEach(e => {
+    const name = e.loggedBy || 'Unattributed';
+    const c = costForEntry(e);
+    if(c != null) costByPerson[name] = (costByPerson[name] || 0) + c;
+  });
+  const rows = Object.entries(costByPerson).sort((a,b) => b[1] - a[1]).slice(0, 10);
+  const maxP = Math.max(1, ...rows.map(r => r[1]));
+  const el = document.getElementById('repPersonBars');
+  el.innerHTML = rows.length === 0 ? '<div class="dash-empty">No data for this range.</div>' : rows.map(([name, cost]) => `
+    <div class="dash-cat-row">
+      <span class="dash-cat-name">${escapeHtml(name)}</span>
+      <div class="dash-cat-track"><div class="dash-cat-fill" style="width:${(cost/maxP)*100}%;background:var(--brand)"></div></div>
+      <span class="dash-cat-cost">${formatCost(cost)}</span>
+    </div>`).join('');
+}
+
 function rangeTotalForGoalUnit(entries, item, unit){
   let total = 0, allConvertible = true;
   entries.forEach(e => {
@@ -1489,6 +1680,31 @@ function renderReportGoalList(entries, start, end){
       </div>`;
   }).join('');
 }
+
+// ---------- CSV export ----------
+function exportReportCSV(){
+  if(!lastReportEntries.length){ showError('No data to export — run a report first.'); return; }
+  const headers = ['Timestamp','Item','Category','Daypart','Quantity','Unit','Cost','Logged By','Edited By','Note'];
+  const rows = lastReportEntries.map(e => {
+    const c = costForEntry(e);
+    return [
+      new Date(e.ts).toLocaleString(),
+      e.item, e.category, e.daypart || '',
+      formatQty(e.qty), e.unit,
+      c != null ? c.toFixed(2) : '',
+      e.loggedBy || '', e.editedBy || '',
+      e.note || ''
+    ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+  });
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const d = new Date().toISOString().slice(0,10);
+  a.download = `waste-report-${d}.csv`;
+  a.click();
+}
+document.getElementById('repExportBtn').addEventListener('click', exportReportCSV);
 
 // ---------- boot ----------
 (async function init(){
