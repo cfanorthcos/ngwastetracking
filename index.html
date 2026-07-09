@@ -412,6 +412,10 @@ textarea{
   <!-- LOG VIEW -->
   <main id="logView">
     <div id="categoryList"></div>
+    <div id="todayFeedSection" hidden>
+      <div class="rep-section-title" style="margin:8px 0 10px;">Today's Entries</div>
+      <div class="feed-card" id="todayFeed"></div>
+    </div>
   </main>
 
   <!-- DASHBOARD VIEW (designed for mirroring to a TV) -->
@@ -893,6 +897,14 @@ function refreshAllViews(){
   renderDaypartStatusRow();
   updateProgress();
   renderDashboard();
+  renderTodayFeed();
+}
+function renderTodayFeed(){
+  const entries = todayEntriesCache.slice().sort((a,b) => b.ts.localeCompare(a.ts));
+  const section = document.getElementById('todayFeedSection');
+  const feedEl = document.getElementById('todayFeed');
+  section.hidden = entries.length === 0;
+  if(entries.length > 0) renderFeedRows(entries, feedEl, { emptyHint: ' yet today' });
 }
 function renderDaypartStatusRow(){
   const counts = {};
