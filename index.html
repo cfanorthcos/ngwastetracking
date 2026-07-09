@@ -156,6 +156,18 @@ main{padding:16px 16px 24px;}
 .feed-del{background:none;border:none;color:var(--ink3);font-size:15px;cursor:pointer;padding:3px 6px;}
 .feed-del:active{color:var(--danger);}
 
+/* Item detail sheet mini-log */
+.item-sheet-empty{font-size:13px;color:var(--ink2);text-align:center;padding:18px 0;font-style:italic;}
+.item-sheet-entry{
+  display:flex;align-items:center;gap:8px;padding:11px 0;border-top:1px solid var(--line);
+}
+.item-sheet-entry:first-child{border-top:none;}
+.ise-time{font-size:11px;color:var(--ink2);font-family:ui-monospace,monospace;flex-shrink:0;width:58px;}
+.ise-body{flex:1;min-width:0;}
+.ise-qty{font-weight:700;font-size:14px;}
+.ise-meta{font-size:11px;color:var(--ink2);margin-top:2px;}
+.ise-actions{display:flex;gap:2px;flex-shrink:0;}
+
 .empty-state{text-align:center;padding:40px 20px;color:var(--ink2);}
 .empty-state .glyph{font-size:30px;display:block;margin-bottom:8px;}
 .loading-text{text-align:center;padding:26px;color:var(--ink3);font-size:13px;}
@@ -412,10 +424,6 @@ textarea{
   <!-- LOG VIEW -->
   <main id="logView">
     <div id="categoryList"></div>
-    <div id="todayFeedSection" hidden>
-      <div class="rep-section-title" style="margin:8px 0 10px;">Today's Entries</div>
-      <div class="feed-card" id="todayFeed"></div>
-    </div>
   </main>
 
   <!-- DASHBOARD VIEW (designed for mirroring to a TV) -->
@@ -560,6 +568,22 @@ textarea{
     <button class="tabbar-btn" data-tab="report"><span class="icon">📈</span>Report</button>
   </div>
 
+</div>
+
+<!-- ITEM DETAIL SHEET -->
+<div class="sheet-backdrop" id="itemSheetBackdrop" hidden>
+  <div class="entry-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <span class="cat-dot" id="itemSheetDot" style="width:14px;height:14px;"></span>
+      <div>
+        <h2 class="sheet-title" id="itemSheetName"></h2>
+        <div class="sheet-sub" id="itemSheetCategory"></div>
+      </div>
+    </div>
+    <div id="itemSheetEntries"></div>
+    <button class="btn btn-log" id="itemSheetLogNew" style="width:100%;margin-top:14px;">+ Log New Entry</button>
+  </div>
 </div>
 
 <!-- ENTRY SHEET -->
@@ -897,14 +921,6 @@ function refreshAllViews(){
   renderDaypartStatusRow();
   updateProgress();
   renderDashboard();
-  renderTodayFeed();
-}
-function renderTodayFeed(){
-  const entries = todayEntriesCache.slice().sort((a,b) => b.ts.localeCompare(a.ts));
-  const section = document.getElementById('todayFeedSection');
-  const feedEl = document.getElementById('todayFeed');
-  section.hidden = entries.length === 0;
-  if(entries.length > 0) renderFeedRows(entries, feedEl, { emptyHint: ' yet today' });
 }
 function renderDaypartStatusRow(){
   const counts = {};
@@ -1006,7 +1022,7 @@ function renderCategories(){
         </div>
         ${badge}
         ${goalLine}`;
-      row.addEventListener('click', () => openSheet(item, cat));
+      row.addEventListener('click', () => openItemSheet(item, cat));
       card.appendChild(row);
     });
     container.appendChild(card);
@@ -1034,6 +1050,87 @@ async function preloadOptionMemory(){
 async function setWeightMode(mode){
   weightMode = mode;
   try{ await window.storage.set('weightInputMode', mode, false); }catch(e){}
+}
+
+// ---------- item detail sheet ----------
+let itemSheetCat = null;
+
+function openItemSheet(item, cat){
+  itemSheetCat = cat;
+  document.getElementById('itemSheetName').textContent = item;
+  document.getElementById('itemSheetCategory').textContent = cat.name;
+  document.getElementById('itemSheetDot').style.background = cat.color;
+  document.getElementById('itemSheetLogNew').style.background = cat.color;
+  renderItemSheetEntries(item, cat);
+  document.getElementById('itemSheetBackdrop').hidden = false;
+}
+function closeItemSheet(){
+  document.getElementById('itemSheetBackdrop').hidden = true;
+}
+document.getElementById('itemSheetBackdrop').addEventListener('click', (e)=>{
+  if(e.target.id === 'itemSheetBackdrop') closeItemSheet();
+});
+document.getElementById('itemSheetLogNew').addEventListener('click', ()=>{
+  const item = document.getElementById('itemSheetName').textContent;
+  closeItemSheet();
+  openSheet(item, itemSheetCat);
+});
+
+function renderItemSheetEntries(item, cat){
+  const wrap = document.getElementById('itemSheetEntries');
+  const entries = todayEntriesCache
+    .filter(e => e.item === item)
+    .sort((a,b) => b.ts.localeCompare(a.ts));
+
+  if(entries.length === 0){
+    wrap.innerHTML = `<div class="item-sheet-empty">Nothing logged for ${item} today yet.</div>`;
+    return;
+  }
+
+  const { total: totalCost } = sumCost(entries);
+  const byUnit = {};
+  entries.forEach(e => { byUnit[e.unit] = (byUnit[e.unit]||0) + e.qty; });
+  const totalStr = Object.entries(byUnit).map(([u,q]) => displayQtyUnit(q,u)).join(', ');
+
+  wrap.innerHTML = `
+    <div style="background:var(--bg);border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:13px;display:flex;justify-content:space-between;align-items:baseline;">
+      <span style="font-weight:700;">Total today: ${totalStr}</span>
+      <span style="font-weight:800;color:var(--brand-dark);">${formatCost(totalCost)}</span>
+    </div>
+    ${entries.map(e => `
+      <div class="item-sheet-entry" data-key="${e.__key}">
+        <div class="ise-time">${formatTime(e.ts)}</div>
+        <div class="ise-body">
+          <div class="ise-qty">${displayQtyUnit(e.qty, e.unit)} <span style="color:var(--brand-dark);font-size:12px;">${costForEntry(e) != null ? '· ' + formatCost(costForEntry(e)) : ''}</span></div>
+          <div class="ise-meta">${e.daypart || ''}${e.loggedBy ? ' · 👤 ' + escapeHtml(e.loggedBy) : ''}${e.note ? ' · "' + escapeHtml(e.note) + '"' : ''}</div>
+        </div>
+        <div class="ise-actions">
+          <button class="feed-edit ise-edit" data-key="${e.__key}" title="Edit">✏️</button>
+          <button class="feed-del ise-del" data-key="${e.__key}" title="Delete">✕</button>
+        </div>
+      </div>`).join('')}`;
+
+  entries.forEach(e => { feedEntryLookup[e.__key] = e; });
+
+  wrap.querySelectorAll('.ise-edit').forEach(btn => {
+    btn.addEventListener('click', ()=>{
+      const entry = feedEntryLookup[btn.dataset.key];
+      if(!entry) return;
+      closeItemSheet();
+      openSheet(entry.item, cat, entry);
+    });
+  });
+  wrap.querySelectorAll('.ise-del').forEach(btn => {
+    btn.addEventListener('click', ()=>{
+      const key = btn.dataset.key;
+      btn.disabled = true;
+      window.storage.delete(key, true).catch(()=> showError('Could not delete — check connection.'));
+      btn.closest('.item-sheet-entry').remove();
+      // re-render the summary after deletion
+      const item = document.getElementById('itemSheetName').textContent;
+      renderItemSheetEntries(item, cat);
+    });
+  });
 }
 
 // ---------- entry sheet ----------
@@ -1363,6 +1460,12 @@ function setupTodayListener(){
     todayEntriesCache = snapshot.docs.map(d => ({ ...d.data(), __key: 'entry:' + d.id }));
     updateStatsStrip(todayEntriesCache);
     refreshAllViews();
+    // if the item detail sheet is open, refresh it too
+    const itemSheet = document.getElementById('itemSheetBackdrop');
+    if(!itemSheet.hidden){
+      const item = document.getElementById('itemSheetName').textContent;
+      if(item && itemSheetCat) renderItemSheetEntries(item, itemSheetCat);
+    }
   }, (err) => {
     showError('Live updates disconnected — check connection.');
   });
