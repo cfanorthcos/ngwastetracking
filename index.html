@@ -109,14 +109,38 @@ main{padding:16px 16px 24px;}
 }
 .offline-banner.show{display:block;}
 
+/* ---------- Search ---------- */
+.search-wrap{
+  display:flex;align-items:center;gap:8px;
+  background:var(--card);border-radius:14px;box-shadow:var(--shadow);
+  padding:10px 14px;margin-bottom:14px;
+}
+.search-icon{font-size:15px;flex-shrink:0;}
+.search-input{
+  flex:1;border:none;background:transparent;font-size:15px;font-family:inherit;
+  color:var(--ink);outline:none;
+}
+.search-input::placeholder{color:var(--ink3);}
+.search-clear{
+  background:none;border:none;color:var(--ink3);font-size:14px;cursor:pointer;
+  padding:2px 4px;flex-shrink:0;
+}
+
 /* ---------- Category cards ---------- */
 .category-card{
   background:var(--card);border-radius:18px;box-shadow:var(--shadow);
   margin-bottom:14px;overflow:hidden;border-top:4px solid var(--cat-color, var(--brand));
 }
-.category-head{display:flex;align-items:center;gap:10px;padding:14px 16px 8px;}
+.category-head{
+  display:flex;align-items:center;gap:10px;padding:14px 16px 8px;
+  cursor:pointer;user-select:none;
+}
 .cat-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-.category-head h3{font-size:14px;font-weight:700;margin:0;color:var(--ink);}
+.category-head h3{font-size:14px;font-weight:700;margin:0;color:var(--ink);flex:1;}
+.cat-chevron{font-size:12px;color:var(--ink3);transition:transform .2s;flex-shrink:0;}
+.category-card.collapsed .cat-chevron{transform:rotate(-90deg);}
+.category-items .item-row:first-child{border-top:1px solid var(--line);}
+.category-card.collapsed .category-items{display:none;}
 .item-row{
   display:flex;flex-direction:column;gap:5px;
   padding:13px 16px;border-top:1px solid var(--line);cursor:pointer;
@@ -423,6 +447,11 @@ textarea{
 
   <!-- LOG VIEW -->
   <main id="logView">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="itemSearch" type="search" placeholder="Search items…" autocomplete="off" autocorrect="off">
+      <button class="search-clear" id="searchClear" hidden>✕</button>
+    </div>
     <div id="categoryList"></div>
   </main>
 
@@ -985,16 +1014,45 @@ function updateProgress(){
 }
 
 // ---------- category list (Log tab) ----------
+let collapsedCategories = new Set();
+let currentSearchQuery = '';
+
 function renderCategories(){
   const stats = getTodayDaypartItemStats();
   const container = document.getElementById('categoryList');
+  const q = currentSearchQuery.toLowerCase().trim();
   container.innerHTML = '';
+
   getVisibleCategories(selectedDaypart).forEach(cat => {
+    const filteredItems = q
+      ? cat.items.filter(item => item.toLowerCase().includes(q))
+      : cat.items;
+    if(filteredItems.length === 0) return;
+
+    const loggedCount = filteredItems.filter(item => stats[item]).length;
+    const isCollapsed = !q && collapsedCategories.has(cat.name);
+
     const card = document.createElement('div');
-    card.className = 'category-card';
+    card.className = 'category-card' + (isCollapsed ? ' collapsed' : '');
     card.style.setProperty('--cat-color', cat.color);
-    card.innerHTML = `<div class="category-head"><span class="cat-dot" style="background:${cat.color}"></span><h3>${cat.name}</h3></div>`;
-    cat.items.forEach(item => {
+
+    const head = document.createElement('div');
+    head.className = 'category-head';
+    head.innerHTML = `
+      <span class="cat-dot" style="background:${cat.color}"></span>
+      <h3>${cat.name}</h3>
+      ${loggedCount > 0 ? `<span style="font-size:11px;font-weight:700;color:${cat.color};">${loggedCount}/${filteredItems.length}</span>` : ''}
+      <span class="cat-chevron">▼</span>`;
+    head.addEventListener('click', ()=>{
+      if(collapsedCategories.has(cat.name)) collapsedCategories.delete(cat.name);
+      else collapsedCategories.add(cat.name);
+      renderCategories();
+    });
+    card.appendChild(head);
+
+    const itemsWrap = document.createElement('div');
+    itemsWrap.className = 'category-items';
+    filteredItems.forEach(item => {
       const s = stats[item];
       const row = document.createElement('div');
       row.className = 'item-row';
@@ -1012,7 +1070,7 @@ function renderCategories(){
         const goalStr = displayQtyUnit(goal.amount, goal.unit);
         goalLine = `<span class="goal-line ${over ? 'over' : 'under'}">
           <span class="goal-icon">${over ? '⚠️' : '🎯'}</span>
-          Today: ${totalStr} of ${goalStr} goal${allConvertible ? '' : ' (partial — mixed units)'}
+          Today: ${totalStr} of ${goalStr} goal${allConvertible ? '' : ' (partial)'}
         </span>`;
       }
       row.innerHTML = `
@@ -1023,10 +1081,16 @@ function renderCategories(){
         ${badge}
         ${goalLine}`;
       row.addEventListener('click', () => openItemSheet(item, cat));
-      card.appendChild(row);
+      itemsWrap.appendChild(row);
     });
+    card.appendChild(itemsWrap);
     container.appendChild(card);
   });
+
+  // Show a message if search returns nothing
+  if(q && container.children.length === 0){
+    container.innerHTML = `<div class="empty-state"><span class="glyph">🔍</span>No items match "${escapeHtml(q)}".</div>`;
+  }
 }
 
 // ---------- option / weight-mode memory ----------
@@ -1051,6 +1115,19 @@ async function setWeightMode(mode){
   weightMode = mode;
   try{ await window.storage.set('weightInputMode', mode, false); }catch(e){}
 }
+
+// ---------- search ----------
+document.getElementById('itemSearch').addEventListener('input', (e)=>{
+  currentSearchQuery = e.target.value;
+  document.getElementById('searchClear').hidden = !currentSearchQuery;
+  renderCategories();
+});
+document.getElementById('searchClear').addEventListener('click', ()=>{
+  document.getElementById('itemSearch').value = '';
+  currentSearchQuery = '';
+  document.getElementById('searchClear').hidden = true;
+  renderCategories();
+});
 
 // ---------- item detail sheet ----------
 let itemSheetCat = null;
