@@ -24,11 +24,53 @@
   --success:#34C759;
   --shadow:0 2px 14px rgba(28,28,30,0.07);
   --shadow-lg:0 8px 30px rgba(28,28,30,0.18);
+  --topbar-bg:rgba(255,255,255,0.72);
+  --topbar-border:rgba(0,0,0,0.04);
+  --tabbar-bg:rgba(255,255,255,0.88);
+  --tabbar-border:rgba(0,0,0,0.06);
+  --sheet-bg:rgba(0,0,0,0.45);
+  --body-bg:linear-gradient(135deg,#FFF3E6 0%, #FFFDFB 45%, #E9FAF7 100%);
+  --avg-line:rgba(0,0,0,0.15);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#1C1C1E;
+    --card:#2C2C2E;
+    --ink:#F2F2F7;
+    --ink2:#8E8E93;
+    --ink3:#48484A;
+    --line:#3A3A3C;
+    --track:#3A3A3C;
+    --shadow:0 2px 14px rgba(0,0,0,0.35);
+    --shadow-lg:0 8px 30px rgba(0,0,0,0.5);
+    --topbar-bg:rgba(28,28,30,0.82);
+    --topbar-border:rgba(255,255,255,0.06);
+    --tabbar-bg:rgba(28,28,30,0.88);
+    --tabbar-border:rgba(255,255,255,0.08);
+    --sheet-bg:rgba(0,0,0,0.65);
+    --body-bg:linear-gradient(135deg,#2C1810 0%, #1C1C1E 45%, #0D2420 100%);
+    --avg-line:rgba(255,255,255,0.15);
+  }
+  .done-badge{background:rgba(52,199,89,0.2);}
+  .rep-trend.better{background:rgba(52,199,89,0.2);}
+  .rep-trend.worse{background:rgba(230,57,70,0.2);}
+  .rfc-tag.danger{background:rgba(230,57,70,0.2);}
+  .rfc-tag.warn{background:rgba(230,81,0,0.2);color:#FFB74D;}
+  .rfc-tag.info{background:rgba(57,73,171,0.25);color:#90CAF9;}
+  .rep-focus-empty{background:rgba(52,199,89,0.15);}
+  .daypart-status-chip.done{background:rgba(52,199,89,0.15);}
+  .sheet-done-note{color:#4CD964;}
+  select{color-scheme:dark;}
+  input[type="date"]{color-scheme:dark;}
+  input[type="search"]{color-scheme:dark;}
+  input[type="text"]{color-scheme:dark;}
+  input[type="number"]{color-scheme:dark;}
+  textarea{color-scheme:dark;}
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{margin:0;padding:0;touch-action:manipulation;}
 body{
-  background:linear-gradient(135deg,#FFF3E6 0%, #FFFDFB 45%, #E9FAF7 100%);
+  background:var(--body-bg);
   color:var(--ink);
   font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,Helvetica,Arial,sans-serif;
   -webkit-font-smoothing:antialiased;
@@ -39,10 +81,10 @@ body{
 /* ---------- Header ---------- */
 .topbar{
   position:sticky;top:0;z-index:30;
-  background:rgba(255,255,255,0.72);
+  background:var(--topbar-bg);
   backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
   padding:16px 18px 14px;
-  border-bottom:1px solid rgba(0,0,0,0.04);
+  border-bottom:1px solid var(--topbar-border);
 }
 .topbar-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
 .large-title{font-size:28px;font-weight:800;letter-spacing:-0.02em;margin:0 0 2px;}
@@ -202,7 +244,7 @@ main{padding:16px 16px 24px;}
 .app.dashboard-mode .tabbar{max-width:100%;}
 
 .dashboard{
-  background:linear-gradient(135deg,#FFF3E6 0%, #FFFDFB 45%, #E9FAF7 100%);
+  background:var(--body-bg);
   color:var(--ink);
   min-height:100vh;padding:28px 32px 110px;
   font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,Helvetica,Arial,sans-serif;
@@ -329,7 +371,7 @@ select{
 /* Charts */
 .rep-chart-scroll{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:16px 12px 10px;overflow-x:auto;}
 .rep-chart{display:flex;align-items:flex-end;gap:5px;height:130px;min-width:max-content;position:relative;}
-.rep-avg-line{position:absolute;left:0;right:0;border-top:2px dashed rgba(0,0,0,0.15);pointer-events:none;}
+.rep-avg-line{position:absolute;left:0;right:0;border-top:2px dashed var(--avg-line);pointer-events:none;}
 .rep-bar{width:26px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
 .rep-bar-fill{width:100%;background:linear-gradient(180deg,#FF9A5A,var(--brand));border-radius:6px 6px 2px 2px;min-height:3px;}
 .rep-bar-fill.prev{background:var(--track);}
@@ -382,8 +424,8 @@ select{
 /* ---------- Bottom tab bar ---------- */
 .tabbar{
   position:fixed;left:0;right:0;bottom:0;z-index:34;
-  background:rgba(255,255,255,0.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border-top:1px solid rgba(0,0,0,0.06);
+  background:var(--tabbar-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:1px solid var(--tabbar-border);
   display:flex;max-width:480px;margin:0 auto;
   padding:8px 6px calc(env(safe-area-inset-bottom,0px) + 6px);
 }
@@ -399,7 +441,7 @@ select{
 
 /* ---------- Entry sheet ---------- */
 .sheet-backdrop{
-  position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:50;
+  position:fixed;inset:0;background:var(--sheet-bg);z-index:50;
   display:flex;align-items:flex-end;justify-content:center;
 }
 .entry-sheet{
