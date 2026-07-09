@@ -264,23 +264,24 @@ main{padding:16px 16px 24px;}
 /* ---------- Report tab ---------- */
 .app.report-mode .topbar{display:none;}
 
-.rep-header{margin-bottom:16px;}
+.rep-header{margin-bottom:14px;}
 .rep-header-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.rep-title{font-size:28px;font-weight:800;letter-spacing:-0.02em;}
+.rep-sub{font-size:13px;color:var(--ink2);font-weight:500;margin-top:2px;}
 .rep-export-btn{
   flex-shrink:0;background:var(--card);color:var(--ink);border:1.5px solid var(--line);
   border-radius:13px;padding:9px 13px;font-size:12px;font-weight:700;box-shadow:var(--shadow);cursor:pointer;
 }
 .rep-export-btn:active{transform:scale(0.97);}
-.rep-title{font-size:28px;font-weight:800;letter-spacing:-0.02em;}
-.rep-sub{font-size:13px;color:var(--ink2);font-weight:500;margin-top:2px;}
 
 select{
   font-family:inherit;font-size:13px;font-weight:600;color:var(--ink);
   background:var(--card);border:none;border-radius:12px;padding:11px 10px;box-shadow:var(--shadow);
 }
-.rep-range-row{margin-bottom:10px;}
+.rep-controls{margin-bottom:16px;}
+.rep-range-row{margin-bottom:8px;}
 .rep-range-row select{width:100%;}
-.rep-custom-range{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.rep-custom-range{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
 .rep-custom-range input[type="date"]{
   flex:1;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink);
   background:var(--card);border:none;border-radius:12px;padding:10px;box-shadow:var(--shadow);
@@ -290,25 +291,72 @@ select{
   background:var(--brand);color:#fff;border:none;border-radius:12px;padding:10px 14px;
   font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0;
 }
-.rep-filter-row{display:flex;gap:8px;margin-bottom:16px;}
+.rep-filter-row{display:flex;gap:8px;}
 .rep-filter-row select{flex:1;}
 
-.rep-section{margin-bottom:24px;}
-.rep-section-title{font-size:13px;font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;}
+.rep-summary-row{display:flex;gap:10px;margin-bottom:22px;}
+.rep-summary-row .stat-chip{flex:1;min-width:0;}
+.rep-vs{font-size:10px;font-weight:700;margin-top:3px;color:rgba(255,255,255,0.8);}
+.stat-chip:not(.cost):not(.entries) .rep-vs{color:var(--ink2);}
+.rep-vs.worse{color:#FFD1CC;}
+.rep-vs.better{color:#C8F5D0;}
+.stat-chip:not(.cost):not(.entries) .rep-vs.worse{color:var(--danger);}
+.stat-chip:not(.cost):not(.entries) .rep-vs.better{color:var(--success);}
 
-.rep-chart-scroll{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:14px 12px 10px;overflow-x:auto;}
-.rep-chart{display:flex;align-items:flex-end;gap:6px;height:130px;min-width:max-content;}
+.rep-section{margin-bottom:22px;}
+.rep-section-title{font-size:13px;font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;}
+.rep-two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+@media(max-width:400px){.rep-two-col{grid-template-columns:1fr;}}
+
+/* Focus Here */
+.rep-focus-list{display:flex;flex-direction:column;gap:10px;}
+.rep-focus-card{
+  background:var(--card);border-radius:16px;box-shadow:var(--shadow);
+  padding:14px 16px;border-left:5px solid var(--fc-color, var(--danger));
+}
+.rfc-header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+.rfc-name{font-size:15px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rfc-cost{font-size:14px;font-weight:800;color:var(--brand-dark);font-family:ui-monospace,monospace;flex-shrink:0;}
+.rfc-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;}
+.rfc-tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;}
+.rfc-tag.danger{background:#FEE8E6;color:var(--danger);}
+.rfc-tag.warn{background:#FFF3E0;color:#E65100;}
+.rfc-tag.info{background:#EEF2FF;color:#3949AB;}
+.rfc-worst{font-size:12px;color:var(--ink2);}
+.rep-focus-empty{font-size:13px;color:var(--success);font-weight:700;padding:14px;text-align:center;
+  background:var(--card);border-radius:14px;box-shadow:var(--shadow);}
+
+/* Charts */
+.rep-chart-scroll{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:16px 12px 10px;overflow-x:auto;}
+.rep-chart{display:flex;align-items:flex-end;gap:5px;height:130px;min-width:max-content;position:relative;}
+.rep-avg-line{position:absolute;left:0;right:0;border-top:2px dashed rgba(0,0,0,0.15);pointer-events:none;}
 .rep-bar{width:26px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
 .rep-bar-fill{width:100%;background:linear-gradient(180deg,#FF9A5A,var(--brand));border-radius:6px 6px 2px 2px;min-height:3px;}
+.rep-bar-fill.prev{background:var(--track);}
 .rep-bar-label{font-size:9px;color:var(--ink2);font-weight:600;margin-top:5px;white-space:nowrap;}
+.rep-dow-chart .rep-bar{width:36px;}
+.rep-dow-chart .rep-bar-label{font-size:10px;font-weight:700;}
 
+/* Item table */
 .rep-item-table{background:var(--card);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;}
-.rep-item-row{padding:11px 16px;border-top:1px solid var(--line);}
+.rep-item-row{padding:11px 16px;border-top:1px solid var(--line);cursor:pointer;transition:background .1s;}
 .rep-item-row:first-child{border-top:none;}
-.rep-item-main{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
-.rep-item-name{font-size:14px;font-weight:700;}
+.rep-item-row:active{background:var(--bg);}
+.rep-item-main{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.rep-item-left{display:flex;align-items:center;gap:8px;min-width:0;flex:1;}
+.rep-item-name{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .rep-item-cost{font-size:13px;font-weight:800;font-family:ui-monospace,monospace;color:var(--brand-dark);flex-shrink:0;}
-.rep-item-sub{font-size:12px;color:var(--ink2);margin-top:2px;}
+.rep-item-sub{display:flex;align-items:center;gap:7px;margin-top:5px;flex-wrap:wrap;}
+.rep-item-qty{font-size:11px;color:var(--ink2);}
+.rep-trend{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;flex-shrink:0;}
+.rep-trend.worse{background:#FEE8E6;color:var(--danger);}
+.rep-trend.better{background:#E7F8EC;color:var(--success);}
+.rep-trend.flat{background:var(--bg);color:var(--ink3);}
+.rep-item-goal-wrap{display:flex;align-items:center;gap:5px;flex:1;min-width:40px;}
+.rep-item-goal-track{height:5px;background:var(--track);border-radius:4px;flex:1;overflow:hidden;}
+.rep-item-goal-fill{height:100%;border-radius:4px;background:var(--success);}
+.rep-item-goal-fill.over{background:var(--danger);}
+.rep-item-goal-label{font-size:10px;font-weight:700;color:var(--ink2);white-space:nowrap;}
 
 /* ---------- Bottom tab bar ---------- */
 .tabbar{
@@ -509,70 +557,99 @@ textarea{
 
   <!-- REPORT VIEW -->
   <main id="reportView" hidden>
+
     <div class="rep-header">
       <div class="rep-header-row">
         <div>
           <div class="rep-title">Report</div>
-          <div class="rep-sub">Trends &amp; history across any date range</div>
+          <div class="rep-sub" id="repSubtitle">Loading…</div>
         </div>
         <button class="rep-export-btn" id="repExportBtn">⬇️ CSV</button>
       </div>
     </div>
 
-    <div class="rep-range-row">
-      <select id="repRangePreset">
-        <option value="today">Today</option>
-        <option value="yesterday">Yesterday</option>
-        <option value="7" selected>Last 7 Days</option>
-        <option value="30">Last 30 Days</option>
-        <option value="month">This Month</option>
-        <option value="custom">Custom Range…</option>
-      </select>
-    </div>
-    <div class="rep-custom-range" id="repCustomRange" hidden>
-      <input type="date" id="repStartDate">
-      <span>to</span>
-      <input type="date" id="repEndDate">
-      <button id="repApplyRange">Apply</button>
-    </div>
-    <div class="rep-filter-row">
-      <select id="repCategoryFilter"><option value="all">All Categories</option></select>
-      <select id="repDaypartFilter"><option value="all">All Dayparts</option></select>
+    <div class="rep-controls">
+      <div class="rep-range-row">
+        <select id="repRangePreset">
+          <option value="today">Today</option>
+          <option value="yesterday">Yesterday</option>
+          <option value="7" selected>Last 7 Days</option>
+          <option value="30">Last 30 Days</option>
+          <option value="month">This Month</option>
+          <option value="custom">Custom Range…</option>
+        </select>
+      </div>
+      <div class="rep-custom-range" id="repCustomRange" hidden>
+        <input type="date" id="repStartDate">
+        <span>to</span>
+        <input type="date" id="repEndDate">
+        <button id="repApplyRange">Apply</button>
+      </div>
+      <div class="rep-filter-row">
+        <select id="repCategoryFilter"><option value="all">All Categories</option></select>
+        <select id="repDaypartFilter"><option value="all">All Dayparts</option></select>
+        <select id="repItemSort">
+          <option value="cost">Sort: Cost</option>
+          <option value="goal">Sort: vs Goal</option>
+          <option value="trend">Sort: Trend</option>
+          <option value="entries">Sort: Entries</option>
+        </select>
+      </div>
     </div>
 
-    <div class="stat-row" style="margin-top:0;margin-bottom:24px;">
+    <!-- Summary chips with period comparison -->
+    <div class="rep-summary-row">
       <div class="stat-chip cost">
         <div class="label">Total Cost</div>
         <div class="value" id="repTotalCost">—</div>
+        <div class="rep-vs" id="repCostVs"></div>
       </div>
       <div class="stat-chip entries">
         <div class="label">Entries</div>
         <div class="value" id="repTotalEntries">—</div>
+        <div class="rep-vs" id="repEntriesVs"></div>
       </div>
       <div class="stat-chip">
         <div class="label">Avg $ / Day</div>
         <div class="value" id="repAvgPerDay">—</div>
+        <div class="rep-vs" id="repAvgVs"></div>
       </div>
     </div>
 
+    <!-- Focus Here -->
     <div class="rep-section">
-      <div class="rep-section-title">Cost Trend</div>
+      <div class="rep-section-title">⚑ Focus Here</div>
+      <div id="repFocusHere" class="rep-focus-list"></div>
+    </div>
+
+    <!-- Daily cost trend -->
+    <div class="rep-section">
+      <div class="rep-section-title">Daily Cost</div>
       <div class="rep-chart-scroll"><div class="rep-chart" id="repTrendChart"></div></div>
     </div>
 
-    <div class="rep-section">
-      <div class="rep-section-title">By Category</div>
-      <div class="dash-leaderboard" id="repCategoryBars"></div>
+    <!-- Day-of-week pattern -->
+    <div class="rep-section" id="repDowSection">
+      <div class="rep-section-title">Day of Week Pattern</div>
+      <div class="rep-chart-scroll"><div class="rep-chart rep-dow-chart" id="repDowChart"></div></div>
     </div>
 
-    <div class="rep-section">
-      <div class="rep-section-title">By Daypart</div>
-      <div class="dash-leaderboard" id="repDaypartBars"></div>
-    </div>
-
+    <!-- Item table -->
     <div class="rep-section">
       <div class="rep-section-title">By Item</div>
       <div class="rep-item-table" id="repItemTable"></div>
+    </div>
+
+    <!-- Breakdowns -->
+    <div class="rep-two-col">
+      <div class="rep-section">
+        <div class="rep-section-title">By Category</div>
+        <div class="dash-leaderboard" id="repCategoryBars"></div>
+      </div>
+      <div class="rep-section">
+        <div class="rep-section-title">By Daypart</div>
+        <div class="dash-leaderboard" id="repDaypartBars"></div>
+      </div>
     </div>
 
     <div class="rep-section">
@@ -581,7 +658,7 @@ textarea{
     </div>
 
     <div class="rep-section">
-      <div class="rep-section-title">Goal Compliance (range total vs. daily goal × days)</div>
+      <div class="rep-section-title">Goal Compliance</div>
       <div class="dash-goal-list" id="repGoalList"></div>
     </div>
 
@@ -589,6 +666,7 @@ textarea{
       <div class="rep-section-title">Entries</div>
       <div class="feed-card" id="repFeed"></div>
     </div>
+
   </main>
 
   <div class="tabbar">
@@ -1659,7 +1737,7 @@ function renderDashboard(){
   document.getElementById('dashUpdated').textContent = `Updated ${formatTime(new Date().toISOString())}`;
 }
 
-// ---------- report (trends & history across any date range) ----------
+// ---------- report ----------
 function populateReportFilters(){
   const catSel = document.getElementById('repCategoryFilter');
   CATEGORIES.forEach(cat => {
@@ -1675,29 +1753,29 @@ function populateReportFilters(){
 populateReportFilters();
 
 function reportRangeBounds(preset){
-  const start = new Date(), end = new Date();
+  const s = new Date(), e = new Date();
   if(preset === 'today'){
-    start.setHours(0,0,0,0); end.setTime(start.getTime()); end.setDate(end.getDate()+1);
+    s.setHours(0,0,0,0); e.setTime(s.getTime()); e.setDate(e.getDate()+1);
   } else if(preset === 'yesterday'){
-    end.setHours(0,0,0,0); start.setTime(end.getTime()); start.setDate(start.getDate()-1);
+    e.setHours(0,0,0,0); s.setTime(e.getTime()); s.setDate(s.getDate()-1);
   } else if(preset === '7'){
-    end.setHours(0,0,0,0); end.setDate(end.getDate()+1); start.setTime(end.getTime()); start.setDate(start.getDate()-7);
+    e.setHours(0,0,0,0); e.setDate(e.getDate()+1); s.setTime(e.getTime()); s.setDate(s.getDate()-7);
   } else if(preset === '30'){
-    end.setHours(0,0,0,0); end.setDate(end.getDate()+1); start.setTime(end.getTime()); start.setDate(start.getDate()-30);
+    e.setHours(0,0,0,0); e.setDate(e.getDate()+1); s.setTime(e.getTime()); s.setDate(s.getDate()-30);
   } else if(preset === 'month'){
-    start.setDate(1); start.setHours(0,0,0,0);
-    end.setTime(start.getTime()); end.setMonth(end.getMonth()+1);
+    s.setDate(1); s.setHours(0,0,0,0); e.setTime(s.getTime()); e.setMonth(e.getMonth()+1);
   }
-  return { start, end };
+  return { start: s, end: e };
 }
 
-document.getElementById('repRangePreset').addEventListener('change', (e)=>{
-  document.getElementById('repCustomRange').hidden = e.target.value !== 'custom';
-  if(e.target.value !== 'custom') loadReport();
+document.getElementById('repRangePreset').addEventListener('change', (ev)=>{
+  document.getElementById('repCustomRange').hidden = ev.target.value !== 'custom';
+  if(ev.target.value !== 'custom') loadReport();
 });
 document.getElementById('repApplyRange').addEventListener('click', loadReport);
 document.getElementById('repCategoryFilter').addEventListener('change', loadReport);
 document.getElementById('repDaypartFilter').addEventListener('change', loadReport);
+document.getElementById('repItemSort').addEventListener('change', ()=> renderReportItemTable(lastReportEntries, lastPrevEntries));
 
 async function loadReport(){
   const preset = document.getElementById('repRangePreset').value;
@@ -1714,162 +1792,383 @@ async function loadReport(){
 
   const feedEl = document.getElementById('repFeed');
   feedEl.innerHTML = '<div class="loading-text">loading report…</div>';
+  document.getElementById('repFocusHere').innerHTML = '<div class="loading-text">calculating…</div>';
 
-  let entries;
+  const days = Math.max(1, Math.round((end - start) / 86400000));
+  const prevEnd = new Date(start);
+  const prevStart = new Date(start); prevStart.setDate(prevStart.getDate() - days);
+
+  let entries, prevEntries;
   try{
-    entries = await fetchEntriesInRange(start, end);
+    [entries, prevEntries] = await Promise.all([
+      fetchEntriesInRange(start, end),
+      fetchEntriesInRange(prevStart, prevEnd)
+    ]);
   }catch(e){
     feedEl.innerHTML = '';
-    showError('Could not load the report — check connection and try again.');
-    return;
+    showError('Could not load report — check connection.'); return;
   }
 
   const catFilter = document.getElementById('repCategoryFilter').value;
   const dpFilter = document.getElementById('repDaypartFilter').value;
-  if(catFilter !== 'all') entries = entries.filter(e => e.category === catFilter);
-  if(dpFilter !== 'all') entries = entries.filter(e => e.daypart === dpFilter);
-
+  const filterFn = e =>
+    (catFilter === 'all' || e.category === catFilter) &&
+    (dpFilter === 'all' || e.daypart === dpFilter);
+  entries = entries.filter(filterFn);
+  prevEntries = prevEntries.filter(filterFn);
   lastReportEntries = entries;
+  lastPrevEntries = prevEntries;
+  lastReportStart = start;
+  lastReportEnd = end;
 
-  renderReportSummary(entries, start, end);
-  renderReportTrendChart(entries, start, end);
+  const presetLabel = document.getElementById('repRangePreset');
+  document.getElementById('repSubtitle').textContent =
+    `${presetLabel.options[presetLabel.selectedIndex].text}  ·  ${days} day${days===1?'':'s'}  vs. prior ${days} days`;
+
+  renderReportSummary(entries, prevEntries, days);
+  renderFocusHere(entries, prevEntries, days);
+  renderReportTrendChart(entries, prevEntries, start, days);
+  renderDowChart(entries, prevEntries);
+  renderReportItemTable(entries, prevEntries);
   renderReportCategoryBars(entries);
   renderReportDaypartBars(entries);
-  renderReportItemTable(entries);
   renderReportPersonBars(entries);
-  renderReportGoalList(entries, start, end);
+  renderReportGoalList(entries, days);
 
-  const sorted = entries.slice().sort((a,b) => b.ts.localeCompare(a.ts)).slice(0, 200);
+  const sorted = entries.slice().sort((a,b) => b.ts.localeCompare(a.ts)).slice(0, 300);
   renderFeedRows(sorted, feedEl, { groupByDay: true, emptyHint: ' for this range' });
 }
 
-function renderReportSummary(entries, start, end){
-  const { total, unpriced } = sumCost(entries);
-  document.getElementById('repTotalCost').textContent = formatCost(total) + (unpriced > 0 ? '*' : '');
-  document.getElementById('repTotalEntries').textContent = entries.length;
-  const days = Math.max(1, Math.round((end - start) / 86400000));
-  document.getElementById('repAvgPerDay').textContent = formatCost(total / days);
+function vsLabel(curr, prev){
+  if(prev === 0) return curr > 0 ? null : null;
+  const pct = Math.round(((curr - prev) / prev) * 100);
+  if(Math.abs(pct) < 1) return { text: '≈ same', cls: 'flat' };
+  const worse = pct > 0;
+  return { text: (pct > 0 ? '▲' : '▼') + ' ' + Math.abs(pct) + '% vs prior period', cls: worse ? 'worse' : 'better' };
 }
 
-function renderReportTrendChart(entries, start, end){
-  const days = Math.max(1, Math.round((end - start) / 86400000));
-  const byDay = {};
+function renderReportSummary(entries, prevEntries, days){
+  const { total } = sumCost(entries);
+  const { total: prevTotal } = sumCost(prevEntries);
+  document.getElementById('repTotalCost').textContent = formatCost(total);
+  document.getElementById('repTotalEntries').textContent = entries.length;
+  document.getElementById('repAvgPerDay').textContent = formatCost(total / days);
+
+  const costVs = vsLabel(total, prevTotal);
+  const entriesVs = vsLabel(entries.length, prevEntries.length);
+  const avgVs = vsLabel(total/days, prevTotal/Math.max(1,days));
+
+  function setVs(elId, vs){
+    const el = document.getElementById(elId);
+    el.textContent = vs ? vs.text : '';
+    el.className = 'rep-vs' + (vs ? ' ' + vs.cls : '');
+  }
+  setVs('repCostVs', costVs);
+  setVs('repEntriesVs', entriesVs);
+  setVs('repAvgVs', avgVs);
+}
+
+function itemTrend(item, entries, prevEntries){
+  const curr = sumCost(entries.filter(e => e.item === item)).total;
+  const prev = sumCost(prevEntries.filter(e => e.item === item)).total;
+  if(prev === 0 && curr === 0) return { cls:'flat', text:'—' };
+  if(prev === 0) return { cls:'worse', text:'New ▲' };
+  const pct = Math.round(((curr-prev)/prev)*100);
+  if(Math.abs(pct) < 5) return { cls:'flat', text:'≈' };
+  return { cls: pct > 0 ? 'worse' : 'better', text: (pct>0?'▲':'▼')+Math.abs(pct)+'%' };
+}
+
+function internalTrend(item, entries){
+  // Compare first half vs second half of this period by cost
+  if(entries.length < 2) return 0;
+  const sorted = entries.filter(e=>e.item===item).sort((a,b)=>a.ts.localeCompare(b.ts));
+  if(sorted.length < 2) return 0;
+  const mid = Math.floor(sorted.length/2);
+  const first = sumCost(sorted.slice(0,mid)).total;
+  const second = sumCost(sorted.slice(mid)).total;
+  return first === 0 ? 0 : (second - first) / first;
+}
+
+function renderFocusHere(entries, prevEntries, days){
+  const el = document.getElementById('repFocusHere');
+  const allItems = CATEGORIES.flatMap(c => c.items);
+
+  const scored = allItems.map(item => {
+    const cost = sumCost(entries.filter(e=>e.item===item)).total;
+    if(cost === 0) return null;
+    const maxCost = Math.max(1, ...allItems.map(i => sumCost(entries.filter(e=>e.item===i)).total));
+    const costScore = cost / maxCost;
+
+    const goal = GOALS[item];
+    let goalScore = 0, overGoalAmt = null;
+    if(goal){
+      const { total: qty } = getTodayTotalFromEntries(entries, item, goal.unit);
+      const target = goal.amount * days;
+      if(qty > target){ goalScore = Math.min(2, (qty-target)/target); overGoalAmt = qty - target; }
+    }
+
+    const trend = internalTrend(item, entries);
+    const trendScore = Math.max(0, trend);
+    const score = costScore * 0.4 + goalScore * 0.4 + trendScore * 0.2;
+
+    // Worst daypart for this item
+    const dpCosts = {};
+    entries.filter(e=>e.item===item).forEach(e=>{
+      const c = costForEntry(e); if(c!=null) dpCosts[e.daypart||'Unknown'] = (dpCosts[e.daypart||'Unknown']||0)+c;
+    });
+    const worstDp = Object.entries(dpCosts).sort((a,b)=>b[1]-a[1])[0];
+
+    const cat = ITEM_TO_CAT[item];
+    return { item, cost, costScore, goalScore, trendScore, score, overGoalAmt, worstDp, cat, trend };
+  }).filter(Boolean).sort((a,b)=>b.score-a.score).slice(0,5);
+
+  if(scored.length === 0){
+    el.innerHTML = `<div class="rep-focus-empty">✅ No major concerns for this period.</div>`;
+    return;
+  }
+
+  el.innerHTML = scored.map(s => {
+    const tags = [];
+    if(s.goalScore > 0) tags.push(`<span class="rfc-tag danger">⚠️ Over goal</span>`);
+    if(s.trend > 0.1) tags.push(`<span class="rfc-tag warn">▲ Trending up</span>`);
+    if(s.costScore > 0.5) tags.push(`<span class="rfc-tag info">💰 High cost</span>`);
+    const catColor = s.cat ? s.cat.color : 'var(--danger)';
+    const worstDpStr = s.worstDp ? `Worst daypart: <strong>${escapeHtml(s.worstDp[0])}</strong> (${formatCost(s.worstDp[1])})` : '';
+    return `<div class="rep-focus-card" style="--fc-color:${catColor}">
+      <div class="rfc-header">
+        <span class="rfc-name">${escapeHtml(s.item)}</span>
+        <span class="rfc-cost">${formatCost(s.cost)}</span>
+      </div>
+      <div class="rfc-tags">${tags.join('')}</div>
+      ${worstDpStr ? `<div class="rfc-worst">${worstDpStr}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function getTodayTotalFromEntries(entries, item, unit){
+  let total = 0, allConvertible = true;
   entries.forEach(e => {
-    const dKey = dateKeyFromDate(new Date(e.ts));
-    const c = costForEntry(e);
-    if(c != null) byDay[dKey] = (byDay[dKey] || 0) + c;
+    if(e.item !== item) return;
+    const c = convertQty(item, e.qty, e.unit, unit);
+    if(c == null) allConvertible = false; else total += c;
   });
-  const maxVal = Math.max(1, ...Object.values(byDay));
+  return { total, allConvertible };
+}
+
+function renderReportTrendChart(entries, prevEntries, start, days){
   const showLabels = days <= 14;
+  const byDay = {}, prevByDay = {};
+  entries.forEach(e => {
+    const d = dateKeyFromDate(new Date(e.ts));
+    const c = costForEntry(e); if(c!=null) byDay[d] = (byDay[d]||0)+c;
+  });
+  prevEntries.forEach(e => {
+    const d = dateKeyFromDate(new Date(e.ts));
+    const c = costForEntry(e); if(c!=null) prevByDay[d] = (prevByDay[d]||0)+c;
+  });
+
+  const allVals = Object.values(byDay);
+  const avg = allVals.length ? allVals.reduce((a,b)=>a+b,0)/allVals.length : 0;
+  const maxVal = Math.max(1, ...allVals);
+
   let html = '';
-  for(let i = 0; i < days; i++){
-    const d = new Date(start); d.setDate(d.getDate() + i);
-    const val = byDay[dateKeyFromDate(d)] || 0;
-    const pct = Math.max(2, (val / maxVal) * 100);
+  for(let i=0; i<days; i++){
+    const d = new Date(start); d.setDate(d.getDate()+i);
+    const dKey = dateKeyFromDate(d);
+    const val = byDay[dKey] || 0;
+    const pct = Math.max(2, (val/maxVal)*100);
     const label = `${d.getMonth()+1}/${d.getDate()}`;
     html += `<div class="rep-bar" title="${label}: ${formatCost(val)}">
       <div class="rep-bar-fill" style="height:${pct}%"></div>
       ${showLabels ? `<div class="rep-bar-label">${label}</div>` : ''}
     </div>`;
   }
-  document.getElementById('repTrendChart').innerHTML = html || '<div class="dash-empty">No data for this range.</div>';
+
+  const avgPct = avg > 0 ? (1-(avg/maxVal))*100 : 100;
+  html += `<div class="rep-avg-line" style="bottom:${avgPct+14}%;" title="Avg: ${formatCost(avg)}"></div>`;
+
+  document.getElementById('repTrendChart').innerHTML = html || '<div class="dash-empty">No data.</div>';
+}
+
+const DOW_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function renderDowChart(entries, prevEntries){
+  const section = document.getElementById('repDowSection');
+  if(entries.length < 3){ section.hidden = true; return; }
+  section.hidden = false;
+
+  const byCurrDow = {}, byPrevDow = {};
+  const countsCurr = {}, countsPrev = {};
+  for(let i=0;i<7;i++){ byCurrDow[i]=0; byPrevDow[i]=0; countsCurr[i]=new Set(); countsPrev[i]=new Set(); }
+
+  entries.forEach(e => {
+    const dow = new Date(e.ts).getDay();
+    const c = costForEntry(e); if(c!=null) byCurrDow[dow]+=c;
+    countsCurr[dow].add(dateKeyFromDate(new Date(e.ts)));
+  });
+  prevEntries.forEach(e => {
+    const dow = new Date(e.ts).getDay();
+    const c = costForEntry(e); if(c!=null) byPrevDow[dow]+=c;
+    countsPrev[dow].add(dateKeyFromDate(new Date(e.ts)));
+  });
+
+  const avgs = DOW_LABELS.map((_,i) => {
+    const days = Math.max(1, countsCurr[i].size);
+    return byCurrDow[i] / days;
+  });
+  const maxAvg = Math.max(1,...avgs);
+
+  let html = DOW_LABELS.map((label,i) => {
+    const pct = Math.max(2,(avgs[i]/maxAvg)*100);
+    return `<div class="rep-bar" title="${label}: avg ${formatCost(avgs[i])}/day">
+      <div class="rep-bar-fill" style="height:${pct}%"></div>
+      <div class="rep-bar-label">${label}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('repDowChart').innerHTML = html;
+}
+
+function renderReportItemTable(entries, prevEntries){
+  const sort = document.getElementById('repItemSort').value;
+  const byItem = {};
+  entries.forEach(e => {
+    if(!byItem[e.item]) byItem[e.item] = { byUnit:{}, cost:0, hasCost:false, count:0 };
+    const s = byItem[e.item];
+    s.byUnit[e.unit] = (s.byUnit[e.unit]||0) + (parseFloat(e.qty)||0);
+    s.count++;
+    const c = costForEntry(e); if(c!=null){ s.cost+=c; s.hasCost=true; }
+  });
+
+  let rows = Object.entries(byItem);
+
+  if(sort === 'cost') rows.sort((a,b) => b[1].cost - a[1].cost);
+  else if(sort === 'entries') rows.sort((a,b) => b[1].count - a[1].count);
+  else if(sort === 'goal') rows.sort((a,b) => {
+    const gA = GOALS[a[0]], gB = GOALS[b[0]];
+    if(!gA && !gB) return 0; if(!gA) return 1; if(!gB) return -1;
+    const { total: ta } = getTodayTotalFromEntries(entries, a[0], gA.unit);
+    const { total: tb } = getTodayTotalFromEntries(entries, b[0], gB.unit);
+    return (tb/gB.amount) - (ta/gA.amount);
+  });
+  else if(sort === 'trend') rows.sort((a,b) => {
+    const tA = itemTrend(a[0], entries, prevEntries||[]);
+    const tB = itemTrend(b[0], entries, prevEntries||[]);
+    const order = {worse:0,flat:1,better:2};
+    return (order[tA.cls]||1) - (order[tB.cls]||1);
+  });
+
+  const el = document.getElementById('repItemTable');
+  if(rows.length === 0){ el.innerHTML = '<div class="dash-empty">No data for this range.</div>'; return; }
+
+  el.innerHTML = rows.map(([item, s]) => {
+    const qtyStr = Object.entries(s.byUnit).map(([u,q]) => displayQtyUnit(q,u)).join(', ');
+    const trend = itemTrend(item, entries, prevEntries||[]);
+    const cat = ITEM_TO_CAT[item];
+    const goal = GOALS[item];
+    let goalHtml = '';
+    if(goal){
+      const { total } = getTodayTotalFromEntries(entries, item, goal.unit);
+      const days = Math.max(1, Math.round((lastReportEnd - lastReportStart)/86400000));
+      const target = goal.amount * days;
+      const pct = target > 0 ? Math.min(150, (total/target)*100) : 0;
+      const over = total > target;
+      goalHtml = `<div class="rep-item-goal-wrap">
+        <div class="rep-item-goal-track"><div class="rep-item-goal-fill${over?' over':''}" style="width:${Math.min(100,pct)}%"></div></div>
+        <span class="rep-item-goal-label">${Math.round(pct)}%</span>
+      </div>`;
+    }
+    return `<div class="rep-item-row">
+      <div class="rep-item-main">
+        <div class="rep-item-left">
+          <span class="cat-dot" style="background:${cat?cat.color:'var(--ink3)'}"></span>
+          <span class="rep-item-name">${escapeHtml(item)}</span>
+        </div>
+        <span class="rep-item-cost">${s.hasCost ? formatCost(s.cost) : '—'}</span>
+      </div>
+      <div class="rep-item-sub">
+        <span class="rep-item-qty">${qtyStr} · ${s.count} entr${s.count===1?'y':'ies'}</span>
+        <span class="rep-trend ${trend.cls}">${trend.text}</span>
+        ${goalHtml}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let lastReportStart = new Date(), lastReportEnd = new Date(), lastPrevEntries = [];
+
+async function loadReport_wrapper(){
+  const preset = document.getElementById('repRangePreset').value;
+  if(preset === 'custom'){
+    const sVal = document.getElementById('repStartDate').value;
+    const eVal = document.getElementById('repEndDate').value;
+    if(sVal && eVal){
+      lastReportStart = new Date(sVal + 'T00:00:00');
+      lastReportEnd = new Date(eVal + 'T00:00:00'); lastReportEnd.setDate(lastReportEnd.getDate()+1);
+    }
+  } else {
+    const { start, end } = reportRangeBounds(preset);
+    lastReportStart = start; lastReportEnd = end;
+  }
+  await loadReport();
 }
 
 function renderReportCategoryBars(entries){
   const costByCat = {};
-  entries.forEach(e => { const c = costForEntry(e); if(c != null) costByCat[e.category] = (costByCat[e.category]||0) + c; });
-  const rows = CATEGORIES.map(cat => ({ name: cat.name, color: cat.color, cost: costByCat[cat.name] || 0 }));
-  const maxCat = Math.max(1, ...rows.map(r => r.cost));
-  const el = document.getElementById('repCategoryBars');
-  el.innerHTML = rows.every(r => r.cost === 0) ? '<div class="dash-empty">No data for this range.</div>' : rows.map(c => `
-    <div class="dash-cat-row">
-      <span class="dash-cat-name">${escapeHtml(c.name)}</span>
-      <div class="dash-cat-track"><div class="dash-cat-fill" style="width:${(c.cost/maxCat)*100}%;background:${c.color}"></div></div>
-      <span class="dash-cat-cost">${formatCost(c.cost)}</span>
-    </div>`).join('');
+  entries.forEach(e => { const c = costForEntry(e); if(c!=null) costByCat[e.category]=(costByCat[e.category]||0)+c; });
+  const rows = CATEGORIES.map(cat => ({name:cat.name,color:cat.color,cost:costByCat[cat.name]||0}));
+  const maxCat = Math.max(1,...rows.map(r=>r.cost));
+  document.getElementById('repCategoryBars').innerHTML = rows.every(r=>r.cost===0)
+    ? '<div class="dash-empty">No data.</div>'
+    : rows.map(c=>`<div class="dash-cat-row">
+        <span class="dash-cat-name">${escapeHtml(c.name)}</span>
+        <div class="dash-cat-track"><div class="dash-cat-fill" style="width:${(c.cost/maxCat)*100}%;background:${c.color}"></div></div>
+        <span class="dash-cat-cost">${formatCost(c.cost)}</span>
+      </div>`).join('');
 }
 
 function renderReportDaypartBars(entries){
   const costByDp = {};
-  entries.forEach(e => { const c = costForEntry(e); if(c != null) costByDp[e.daypart] = (costByDp[e.daypart]||0) + c; });
-  const rows = DAYPARTS.map(dp => ({ name: dp, color: DAYPART_COLORS[dp] || 'var(--brand)', cost: costByDp[dp] || 0 }));
-  const maxDp = Math.max(1, ...rows.map(r => r.cost));
-  const el = document.getElementById('repDaypartBars');
-  el.innerHTML = rows.every(r => r.cost === 0) ? '<div class="dash-empty">No data for this range.</div>' : rows.map(c => `
-    <div class="dash-cat-row">
-      <span class="dash-cat-name">${escapeHtml(c.name)}</span>
-      <div class="dash-cat-track"><div class="dash-cat-fill" style="width:${(c.cost/maxDp)*100}%;background:${c.color}"></div></div>
-      <span class="dash-cat-cost">${formatCost(c.cost)}</span>
-    </div>`).join('');
-}
-
-function renderReportItemTable(entries){
-  const byItem = {};
-  entries.forEach(e => {
-    if(!byItem[e.item]) byItem[e.item] = { byUnit: {}, cost: 0, hasCost: false, count: 0 };
-    const s = byItem[e.item];
-    s.byUnit[e.unit] = (s.byUnit[e.unit] || 0) + (parseFloat(e.qty) || 0);
-    s.count++;
-    const c = costForEntry(e);
-    if(c != null){ s.cost += c; s.hasCost = true; }
-  });
-  const rows = Object.entries(byItem).sort((a,b) => b[1].cost - a[1].cost);
-  const el = document.getElementById('repItemTable');
-  el.innerHTML = rows.length === 0 ? '<div class="dash-empty">No data for this range.</div>' : rows.map(([item, s]) => {
-    const qtyStr = Object.entries(s.byUnit).map(([u,q]) => displayQtyUnit(q,u)).join(', ');
-    return `<div class="rep-item-row">
-      <div class="rep-item-main">
-        <span class="rep-item-name">${escapeHtml(item)}</span>
-        <span class="rep-item-cost">${s.hasCost ? formatCost(s.cost) : '—'}</span>
-      </div>
-      <div class="rep-item-sub">${qtyStr} · ${s.count} entr${s.count===1?'y':'ies'}</div>
-    </div>`;
-  }).join('');
+  entries.forEach(e => { const c = costForEntry(e); if(c!=null) costByDp[e.daypart]=(costByDp[e.daypart]||0)+c; });
+  const rows = DAYPARTS.map(dp => ({name:dp,color:DAYPART_COLORS[dp]||'var(--brand)',cost:costByDp[dp]||0}));
+  const maxDp = Math.max(1,...rows.map(r=>r.cost));
+  document.getElementById('repDaypartBars').innerHTML = rows.every(r=>r.cost===0)
+    ? '<div class="dash-empty">No data.</div>'
+    : rows.map(c=>`<div class="dash-cat-row">
+        <span class="dash-cat-name">${escapeHtml(c.name)}</span>
+        <div class="dash-cat-track"><div class="dash-cat-fill" style="width:${(c.cost/maxDp)*100}%;background:${c.color}"></div></div>
+        <span class="dash-cat-cost">${formatCost(c.cost)}</span>
+      </div>`).join('');
 }
 
 function renderReportPersonBars(entries){
   const costByPerson = {};
   entries.forEach(e => {
     const name = e.loggedBy || 'Unattributed';
-    const c = costForEntry(e);
-    if(c != null) costByPerson[name] = (costByPerson[name] || 0) + c;
+    const c = costForEntry(e); if(c!=null) costByPerson[name]=(costByPerson[name]||0)+c;
   });
-  const rows = Object.entries(costByPerson).sort((a,b) => b[1] - a[1]).slice(0, 10);
-  const maxP = Math.max(1, ...rows.map(r => r[1]));
-  const el = document.getElementById('repPersonBars');
-  el.innerHTML = rows.length === 0 ? '<div class="dash-empty">No data for this range.</div>' : rows.map(([name, cost]) => `
-    <div class="dash-cat-row">
-      <span class="dash-cat-name">${escapeHtml(name)}</span>
-      <div class="dash-cat-track"><div class="dash-cat-fill" style="width:${(cost/maxP)*100}%;background:var(--brand)"></div></div>
-      <span class="dash-cat-cost">${formatCost(cost)}</span>
-    </div>`).join('');
+  const rows = Object.entries(costByPerson).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const maxP = Math.max(1,...rows.map(r=>r[1]));
+  document.getElementById('repPersonBars').innerHTML = rows.length===0
+    ? '<div class="dash-empty">No data.</div>'
+    : rows.map(([name,cost])=>`<div class="dash-cat-row">
+        <span class="dash-cat-name">${escapeHtml(name)}</span>
+        <div class="dash-cat-track"><div class="dash-cat-fill" style="width:${(cost/maxP)*100}%;background:var(--brand)"></div></div>
+        <span class="dash-cat-cost">${formatCost(cost)}</span>
+      </div>`).join('');
 }
 
-function rangeTotalForGoalUnit(entries, item, unit){
-  let total = 0, allConvertible = true;
-  entries.forEach(e => {
-    if(e.item !== item) return;
-    const converted = convertQty(item, e.qty, e.unit, unit);
-    if(converted == null) allConvertible = false; else total += converted;
-  });
-  return { total, allConvertible };
-}
-function renderReportGoalList(entries, start, end){
-  const days = Math.max(1, Math.round((end - start) / 86400000));
-  const list = document.getElementById('repGoalList');
-  list.innerHTML = Object.entries(GOALS).map(([item, goal]) => {
-    const { total, allConvertible } = rangeTotalForGoalUnit(entries, item, goal.unit);
+function renderReportGoalList(entries, days){
+  document.getElementById('repGoalList').innerHTML = Object.entries(GOALS).map(([item,goal]) => {
+    const { total, allConvertible } = getTodayTotalFromEntries(entries, item, goal.unit);
     const target = goal.amount * days;
-    const pct = target > 0 ? Math.min(100, (total/target)*100) : (total > 0 ? 100 : 0);
+    const pct = target>0 ? Math.min(100,(total/target)*100) : (total>0?100:0);
     const over = total > target;
-    return `
-      <div class="dash-goal-row">
-        <div class="dgr-top">
-          <span class="dgr-name">${escapeHtml(item)}</span>
-          <span class="dgr-val ${over ? 'over' : ''}">${displayQtyUnit(total, goal.unit)} / ${displayQtyUnit(target, goal.unit)}${allConvertible ? '' : ' *'}</span>
-        </div>
-        <div class="dgr-track"><div class="dgr-fill ${over ? 'over' : ''}" style="width:${pct}%"></div></div>
-      </div>`;
+    return `<div class="dash-goal-row">
+      <div class="dgr-top">
+        <span class="dgr-name">${escapeHtml(item)}</span>
+        <span class="dgr-val ${over?'over':''}">${displayQtyUnit(total,goal.unit)} / ${displayQtyUnit(target,goal.unit)}${allConvertible?'':' *'}</span>
+      </div>
+      <div class="dgr-track"><div class="dgr-fill ${over?'over':''}" style="width:${pct}%"></div></div>
+    </div>`;
   }).join('');
 }
 
@@ -1881,19 +2180,18 @@ function exportReportCSV(){
     const c = costForEntry(e);
     return [
       new Date(e.ts).toLocaleString(),
-      e.item, e.category, e.daypart || '',
+      e.item, e.category, e.daypart||'',
       formatQty(e.qty), e.unit,
-      c != null ? c.toFixed(2) : '',
-      e.loggedBy || '', e.editedBy || '',
-      e.note || ''
-    ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+      c!=null ? c.toFixed(2) : '',
+      e.loggedBy||'', e.editedBy||'',
+      e.note||''
+    ].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
   });
   const csv = [headers.join(','), ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
+  const blob = new Blob([csv], {type:'text/csv'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  const d = new Date().toISOString().slice(0,10);
-  a.download = `waste-report-${d}.csv`;
+  a.download = `waste-report-${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
 }
 document.getElementById('repExportBtn').addEventListener('click', exportReportCSV);
