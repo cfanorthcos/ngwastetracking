@@ -358,6 +358,27 @@ select{
 .rep-item-goal-fill.over{background:var(--danger);}
 .rep-item-goal-label{font-size:10px;font-weight:700;color:var(--ink2);white-space:nowrap;}
 
+/* Item drill-down sheet */
+.drill-sheet{max-height:90vh;overflow-y:auto;}
+.drill-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px;}
+.drill-header-left{display:flex;align-items:center;gap:10px;min-width:0;}
+.drill-header-right{text-align:right;flex-shrink:0;}
+.drill-cost{font-size:22px;font-weight:800;font-family:ui-monospace,monospace;color:var(--brand-dark);}
+.drill-vs{font-size:11px;font-weight:700;margin-top:3px;}
+.drill-vs.worse{color:var(--danger);}
+.drill-vs.better{color:var(--success);}
+.drill-vs.flat{color:var(--ink3);}
+.drill-section{margin-bottom:18px;}
+.drill-section-title{font-size:11px;font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;}
+.drill-goal-meta{font-size:12px;color:var(--ink2);margin-top:6px;font-weight:600;}
+.drill-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;}
+.drill-mini-bar{display:flex;align-items:center;gap:7px;padding:5px 0;border-top:1px solid var(--line);}
+.drill-mini-bar:first-child{border-top:none;}
+.drill-mini-label{font-size:12px;font-weight:600;width:54px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.drill-mini-track{flex:1;height:7px;background:var(--track);border-radius:4px;overflow:hidden;}
+.drill-mini-fill{height:100%;border-radius:4px;}
+.drill-mini-val{font-size:11px;font-weight:700;font-family:ui-monospace,monospace;color:var(--ink2);width:38px;text-align:right;flex-shrink:0;}
+
 /* ---------- Bottom tab bar ---------- */
 .tabbar{
   position:fixed;left:0;right:0;bottom:0;z-index:34;
@@ -718,6 +739,60 @@ textarea{
     <div class="sheet-actions">
       <button class="btn btn-cancel" id="sheetCancel">Cancel</button>
       <button class="btn btn-log" id="sheetLog">Log It</button>
+    </div>
+  </div>
+</div>
+
+<!-- ITEM DRILL-DOWN SHEET (Report) -->
+<div class="sheet-backdrop" id="drillBackdrop" hidden>
+  <div class="entry-sheet drill-sheet">
+    <div class="sheet-handle"></div>
+    <div class="drill-header">
+      <div class="drill-header-left">
+        <span class="cat-dot" id="drillDot" style="width:14px;height:14px;"></span>
+        <div>
+          <div class="sheet-title" id="drillItemName"></div>
+          <div class="sheet-sub" id="drillCategoryName"></div>
+        </div>
+      </div>
+      <div class="drill-header-right">
+        <div class="drill-cost" id="drillTotalCost"></div>
+        <div class="drill-vs" id="drillVs"></div>
+      </div>
+    </div>
+
+    <div class="drill-section" id="drillGoalSection" hidden>
+      <div class="drill-section-title">vs. Goal</div>
+      <div class="dgr-track" style="height:11px;border-radius:8px;"><div class="dgr-fill" id="drillGoalFill" style="width:0%"></div></div>
+      <div class="drill-goal-meta" id="drillGoalMeta"></div>
+    </div>
+
+    <div class="drill-section">
+      <div class="drill-section-title">Daily Trend</div>
+      <div class="rep-chart-scroll" style="padding:12px 10px 8px;">
+        <div class="rep-chart" id="drillTrendChart"></div>
+      </div>
+    </div>
+
+    <div class="drill-cols">
+      <div class="drill-section">
+        <div class="drill-section-title">By Daypart</div>
+        <div id="drillDaypartBars"></div>
+      </div>
+      <div class="drill-section">
+        <div class="drill-section-title">By Day of Week</div>
+        <div id="drillDowBars"></div>
+      </div>
+    </div>
+
+    <div class="drill-section" id="drillPersonSection">
+      <div class="drill-section-title">By Team Member</div>
+      <div id="drillPersonBars"></div>
+    </div>
+
+    <div class="drill-section">
+      <div class="drill-section-title">Entries</div>
+      <div class="feed-card" id="drillFeed" style="max-height:260px;overflow-y:auto;"></div>
     </div>
   </div>
 </div>
@@ -1934,7 +2009,7 @@ function renderFocusHere(entries, prevEntries, days){
     if(s.costScore > 0.5) tags.push(`<span class="rfc-tag info">💰 High cost</span>`);
     const catColor = s.cat ? s.cat.color : 'var(--danger)';
     const worstDpStr = s.worstDp ? `Worst daypart: <strong>${escapeHtml(s.worstDp[0])}</strong> (${formatCost(s.worstDp[1])})` : '';
-    return `<div class="rep-focus-card" style="--fc-color:${catColor}">
+    return `<div class="rep-focus-card" style="--fc-color:${catColor};cursor:pointer;" data-item="${escapeHtml(s.item)}">
       <div class="rfc-header">
         <span class="rfc-name">${escapeHtml(s.item)}</span>
         <span class="rfc-cost">${formatCost(s.cost)}</span>
@@ -1943,6 +2018,10 @@ function renderFocusHere(entries, prevEntries, days){
       ${worstDpStr ? `<div class="rfc-worst">${worstDpStr}</div>` : ''}
     </div>`;
   }).join('');
+
+  el.querySelectorAll('.rep-focus-card').forEach(card => {
+    card.addEventListener('click', () => openDrillDown(card.dataset.item));
+  });
 }
 
 function getTodayTotalFromEntries(entries, item, unit){
@@ -2076,7 +2155,7 @@ function renderReportItemTable(entries, prevEntries){
         <span class="rep-item-goal-label">${Math.round(pct)}%</span>
       </div>`;
     }
-    return `<div class="rep-item-row">
+    return `<div class="rep-item-row" data-item="${escapeHtml(item)}">
       <div class="rep-item-main">
         <div class="rep-item-left">
           <span class="cat-dot" style="background:${cat?cat.color:'var(--ink3)'}"></span>
@@ -2091,6 +2170,10 @@ function renderReportItemTable(entries, prevEntries){
       </div>
     </div>`;
   }).join('');
+
+  el.querySelectorAll('.rep-item-row').forEach(row => {
+    row.addEventListener('click', () => openDrillDown(row.dataset.item));
+  });
 }
 
 let lastReportStart = new Date(), lastReportEnd = new Date(), lastPrevEntries = [];
@@ -2170,6 +2253,126 @@ function renderReportGoalList(entries, days){
       <div class="dgr-track"><div class="dgr-fill ${over?'over':''}" style="width:${pct}%"></div></div>
     </div>`;
   }).join('');
+}
+
+// ---------- item drill-down (report) ----------
+document.getElementById('drillBackdrop').addEventListener('click', (e)=>{
+  if(e.target.id === 'drillBackdrop') document.getElementById('drillBackdrop').hidden = true;
+});
+
+function openDrillDown(item){
+  const entries = lastReportEntries.filter(e => e.item === item);
+  const prevEntries = (lastPrevEntries||[]).filter(e => e.item === item);
+  const cat = ITEM_TO_CAT[item];
+  const days = Math.max(1, Math.round((lastReportEnd - lastReportStart) / 86400000));
+
+  // Header
+  document.getElementById('drillItemName').textContent = item;
+  document.getElementById('drillCategoryName').textContent = cat ? cat.name : '';
+  document.getElementById('drillDot').style.background = cat ? cat.color : 'var(--ink3)';
+  const { total: cost } = sumCost(entries);
+  const { total: prevCost } = sumCost(prevEntries);
+  document.getElementById('drillTotalCost').textContent = formatCost(cost);
+  const vs = vsLabel(cost, prevCost);
+  const vsEl = document.getElementById('drillVs');
+  vsEl.textContent = vs ? vs.text : '';
+  vsEl.className = 'drill-vs' + (vs ? ' ' + (vs.cls === 'worse' ? 'worse' : vs.cls === 'better' ? 'better' : 'flat') : '');
+
+  // Goal
+  const goal = GOALS[item];
+  const goalSection = document.getElementById('drillGoalSection');
+  if(goal){
+    goalSection.hidden = false;
+    const { total: qty } = getTodayTotalFromEntries(entries, item, goal.unit);
+    const target = goal.amount * days;
+    const pct = target > 0 ? Math.min(150, (qty/target)*100) : 0;
+    const over = qty > target;
+    const fill = document.getElementById('drillGoalFill');
+    fill.style.width = Math.min(100, pct) + '%';
+    fill.className = 'dgr-fill' + (over ? ' over' : '');
+    document.getElementById('drillGoalMeta').textContent =
+      `${displayQtyUnit(qty, goal.unit)} of ${displayQtyUnit(target, goal.unit)} total goal (${Math.round(pct)}% — ${days} day${days===1?'':'s'})`;
+  } else {
+    goalSection.hidden = true;
+  }
+
+  // Daily trend chart
+  const byDay = {};
+  entries.forEach(e => {
+    const dKey = dateKeyFromDate(new Date(e.ts));
+    const c = costForEntry(e); if(c != null) byDay[dKey] = (byDay[dKey]||0)+c;
+  });
+  const maxDay = Math.max(1, ...Object.values(byDay));
+  const showLabels = days <= 14;
+  let trendHtml = '';
+  for(let i=0; i<days; i++){
+    const d = new Date(lastReportStart); d.setDate(d.getDate()+i);
+    const dKey = dateKeyFromDate(d);
+    const val = byDay[dKey] || 0;
+    const pct = Math.max(2, (val/maxDay)*100);
+    const label = `${d.getMonth()+1}/${d.getDate()}`;
+    trendHtml += `<div class="rep-bar" title="${label}: ${formatCost(val)}">
+      <div class="rep-bar-fill" style="height:${pct}%;background:${cat?cat.color:'var(--brand)'}"></div>
+      ${showLabels ? `<div class="rep-bar-label">${label}</div>` : ''}
+    </div>`;
+  }
+  document.getElementById('drillTrendChart').innerHTML = trendHtml || '<div class="dash-empty">No data.</div>';
+
+  // By daypart
+  const dpCosts = {};
+  DAYPARTS.forEach(dp => dpCosts[dp] = 0);
+  entries.forEach(e => { const c = costForEntry(e); if(c!=null && e.daypart) dpCosts[e.daypart]=(dpCosts[e.daypart]||0)+c; });
+  const maxDp = Math.max(1, ...Object.values(dpCosts));
+  document.getElementById('drillDaypartBars').innerHTML = DAYPARTS.map(dp => `
+    <div class="drill-mini-bar">
+      <span class="drill-mini-label">${dp}</span>
+      <div class="drill-mini-track"><div class="drill-mini-fill" style="width:${(dpCosts[dp]/maxDp)*100}%;background:${DAYPART_COLORS[dp]||'var(--brand)'}"></div></div>
+      <span class="drill-mini-val">${dpCosts[dp] > 0 ? formatCost(dpCosts[dp]) : '—'}</span>
+    </div>`).join('');
+
+  // By day of week
+  const dowCosts = {}, dowCounts = {};
+  for(let i=0;i<7;i++){ dowCosts[i]=0; dowCounts[i]=new Set(); }
+  entries.forEach(e => {
+    const dow = new Date(e.ts).getDay();
+    const c = costForEntry(e); if(c!=null) dowCosts[dow]+=c;
+    dowCounts[dow].add(dateKeyFromDate(new Date(e.ts)));
+  });
+  const dowAvgs = DOW_LABELS.map((_,i) => dowCounts[i].size > 0 ? dowCosts[i]/dowCounts[i].size : 0);
+  const maxDow = Math.max(1, ...dowAvgs);
+  document.getElementById('drillDowBars').innerHTML = DOW_LABELS.map((label,i) => `
+    <div class="drill-mini-bar">
+      <span class="drill-mini-label">${label}</span>
+      <div class="drill-mini-track"><div class="drill-mini-fill" style="width:${(dowAvgs[i]/maxDow)*100}%;background:${cat?cat.color:'var(--brand)'}"></div></div>
+      <span class="drill-mini-val">${dowAvgs[i] > 0 ? formatCost(dowAvgs[i]) : '—'}</span>
+    </div>`).join('');
+
+  // By person
+  const personCosts = {};
+  entries.forEach(e => {
+    const name = e.loggedBy || 'Unattributed';
+    const c = costForEntry(e); if(c!=null) personCosts[name]=(personCosts[name]||0)+c;
+  });
+  const personRows = Object.entries(personCosts).sort((a,b)=>b[1]-a[1]);
+  const maxP = Math.max(1, ...personRows.map(r=>r[1]));
+  const personSection = document.getElementById('drillPersonSection');
+  if(personRows.length > 0 && !(personRows.length === 1 && personRows[0][0] === 'Unattributed')){
+    personSection.hidden = false;
+    document.getElementById('drillPersonBars').innerHTML = personRows.map(([name,cost]) => `
+      <div class="drill-mini-bar">
+        <span class="drill-mini-label">${escapeHtml(name)}</span>
+        <div class="drill-mini-track"><div class="drill-mini-fill" style="width:${(cost/maxP)*100}%;background:var(--brand)"></div></div>
+        <span class="drill-mini-val">${formatCost(cost)}</span>
+      </div>`).join('');
+  } else {
+    personSection.hidden = true;
+  }
+
+  // Entries
+  const sorted = entries.slice().sort((a,b)=>b.ts.localeCompare(a.ts));
+  renderFeedRows(sorted, document.getElementById('drillFeed'), { groupByDay: days > 1, emptyHint: ' for this item' });
+
+  document.getElementById('drillBackdrop').hidden = false;
 }
 
 // ---------- CSV export ----------
