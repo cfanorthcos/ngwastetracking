@@ -421,6 +421,42 @@ select{
 .drill-mini-fill{height:100%;border-radius:4px;}
 .drill-mini-val{font-size:11px;font-weight:700;font-family:ui-monospace,monospace;color:var(--ink2);width:38px;text-align:right;flex-shrink:0;}
 
+/* ---------- Settings page ---------- */
+.settings-section{margin-bottom:24px;}
+.settings-section-title{font-size:13px;font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;}
+.settings-hint{font-size:12px;color:var(--ink2);margin-bottom:10px;line-height:1.5;}
+.settings-card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:10px;}
+.settings-item-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-top:1px solid var(--line);}
+.settings-item-row:first-child{border-top:none;}
+.settings-item-label{font-size:14px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.settings-item-select{
+  font-family:inherit;font-size:12px;font-weight:600;color:var(--ink);background:var(--bg);
+  border:1.5px solid var(--line);border-radius:9px;padding:6px 8px;cursor:pointer;max-width:160px;
+}
+.settings-row{padding:12px 16px;border-top:1px solid var(--line);}
+.settings-row:first-child{border-top:none;}
+.settings-row-label{font-size:12px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;}
+.settings-input{
+  width:100%;font-family:inherit;font-size:13px;color:var(--ink);background:var(--bg);
+  border:1.5px solid var(--line);border-radius:9px;padding:9px 10px;
+}
+.settings-hint{font-size:12px;color:var(--ink2);padding:0 16px 12px;line-height:1.5;}
+.settings-row-meta{font-size:12px;color:var(--ink2);padding:0 16px 12px;}
+.settings-action-btn{
+  width:100%;background:var(--brand);color:#fff;border:none;
+  padding:14px;font-weight:700;font-size:14px;cursor:pointer;
+}
+.settings-action-btn:active{opacity:0.85;}
+.settings-preview{
+  font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;
+  color:var(--ink2);padding:14px 16px;margin:0;white-space:pre-wrap;word-break:break-word;
+  line-height:1.6;
+}
+.settings-cat-header{
+  font-size:12px;font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:0.04em;
+  padding:10px 16px 6px;background:var(--bg);
+}
+
 /* ---------- Bottom tab bar ---------- */
 .tabbar{
   position:fixed;left:0;right:0;bottom:0;z-index:34;
@@ -732,10 +768,57 @@ textarea{
 
   </main>
 
+  <!-- SETTINGS VIEW -->
+  <main id="settingsView" hidden>
+
+    <div class="large-title" style="margin-bottom:4px;">Settings</div>
+    <div class="title-sub" style="margin-bottom:20px;">Shared team configuration</div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Item Units</div>
+      <div class="settings-hint">Changes affect all devices. Existing entries are not changed.</div>
+      <div id="settingsItemList"></div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Google Sheets</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div class="settings-row-label">Apps Script Web App URL</div>
+          <input class="settings-input" type="url" id="sheetsWebAppInput" placeholder="https://script.google.com/macros/s/…/exec">
+        </div>
+        <div class="settings-hint">Paste your deployed Apps Script URL above. Every new, edited, or deleted entry will sync to your Sheet automatically on all devices.</div>
+        <div class="settings-row-meta" id="sheetsStatus"></div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Weekly Slack Report</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div class="settings-row-label">Webhook URL</div>
+          <input class="settings-input" type="url" id="slackWebhookInput" placeholder="https://hooks.slack.com/services/…">
+        </div>
+        <div class="settings-hint">Paste your Slack Incoming Webhook URL above. Reports are sent automatically every Wednesday morning when the app is opened.</div>
+        <div class="settings-row-meta" id="slackLastSentInfo"></div>
+        <button class="settings-action-btn" id="slackSendNowBtn">📤 Send Last Week's Report Now</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Slack Report Preview</div>
+      <div class="settings-card">
+        <pre class="settings-preview" id="slackPreview">Loading…</pre>
+      </div>
+    </div>
+
+  </main>
+
   <div class="tabbar">
     <button class="tabbar-btn active" data-tab="log"><span class="icon">📋</span>Log</button>
     <button class="tabbar-btn" data-tab="dashboard"><span class="icon">📺</span>Dashboard</button>
     <button class="tabbar-btn" data-tab="report"><span class="icon">📈</span>Report</button>
+    <button class="tabbar-btn" data-tab="settings"><span class="icon">⚙️</span>Settings</button>
   </div>
 
 </div>
@@ -971,7 +1054,32 @@ const ITEM_UNIT_CONFIG = {
   "Milkwash":        [{key:'qt',kind:'volume',label:'Qt'}],
 };
 const DEFAULT_UNIT_CONFIG = [{key:'weight',kind:'weight',label:'Weight'}];
-function getUnitOptions(item){ return ITEM_UNIT_CONFIG[item] || DEFAULT_UNIT_CONFIG; }
+let itemUnitOverrides = {}; // loaded from Firestore; keyed by item name → options array
+
+function getUnitOptions(item){
+  if(itemUnitOverrides[item]) return itemUnitOverrides[item];
+  return ITEM_UNIT_CONFIG[item] || DEFAULT_UNIT_CONFIG;
+}
+
+// Preset unit bundles available in the Settings page
+const UNIT_PRESETS = [
+  { value:'each',        label:'Each (individual)',     options:[{key:'each',kind:'count',label:'Each'}] },
+  { value:'tray',        label:'Tray / Pan',            options:[{key:'tray',kind:'count',label:'Tray'}] },
+  { value:'each_tray',   label:'Each + Tray option',   options:[{key:'each',kind:'count',label:'Each'},{key:'tray',kind:'count',label:'Tray'}] },
+  { value:'weight',      label:'Weight (lb)',           options:[{key:'weight',kind:'weight',label:'Weight'}] },
+  { value:'each_weight', label:'Each + Weight option', options:[{key:'each',kind:'count',label:'Each'},{key:'weight',kind:'weight',label:'Weight'}] },
+  { value:'qt',          label:'Quarts (qt)',           options:[{key:'qt',kind:'volume',label:'Qt'}] },
+];
+function detectPreset(options){
+  const keys = options.map(o=>o.key).sort().join('_');
+  for(const p of UNIT_PRESETS){
+    if(p.options.map(o=>o.key).sort().join('_') === keys) return p.value;
+  }
+  return 'weight';
+}
+
+// ---------- haptics ----------
+function haptic(){ try{ navigator.vibrate(10); }catch(e){} }
 
 // Price per stored unit (each/tray/lb/qt). Oz prices from the price sheet are converted to $/lb (×16)
 // since weight is always stored internally as decimal pounds. Items not listed here have no price yet.
@@ -1397,8 +1505,8 @@ function renderItemSheetEntries(item, cat){
       const key = btn.dataset.key;
       btn.disabled = true;
       window.storage.delete(key, true).catch(()=> showError('Could not delete — check connection.'));
+      writeToSheet({ action:'delete', key });
       btn.closest('.item-sheet-entry').remove();
-      // re-render the summary after deletion
       const item = document.getElementById('itemSheetName').textContent;
       renderItemSheetEntries(item, cat);
     });
@@ -1512,11 +1620,11 @@ function renderQtySection(catColor){
         <button class="qty-btn" id="qtyPlus">+</button>
       </div>
       <div class="unit-suffix">${opt.label}</div>`;
-    document.getElementById('qtyMinus').addEventListener('click', ()=>{
+    document.getElementById('qtyMinus').addEventListener('click', ()=>{ haptic();
       const inp = document.getElementById('qtyInput');
       inp.value = Math.max(0, (parseInt(inp.value)||0) - 1);
     });
-    document.getElementById('qtyPlus').addEventListener('click', ()=>{
+    document.getElementById('qtyPlus').addEventListener('click', ()=>{ haptic();
       const inp = document.getElementById('qtyInput');
       inp.value = (parseInt(inp.value)||0) + 1;
     });
@@ -1529,11 +1637,11 @@ function renderQtySection(catColor){
         <button class="qty-btn" id="qtyPlus">+</button>
       </div>
       <div class="unit-suffix">Quarts (qt)</div>`;
-    document.getElementById('qtyMinus').addEventListener('click', ()=>{
+    document.getElementById('qtyMinus').addEventListener('click', ()=>{ haptic();
       const inp = document.getElementById('qtyInput');
       inp.value = Math.max(0, (parseFloat(inp.value)||0) - 0.25);
     });
-    document.getElementById('qtyPlus').addEventListener('click', ()=>{
+    document.getElementById('qtyPlus').addEventListener('click', ()=>{ haptic();
       const inp = document.getElementById('qtyInput');
       inp.value = Math.round(((parseFloat(inp.value)||0) + 0.25)*100)/100;
     });
@@ -1626,6 +1734,9 @@ document.getElementById('sheetLog').addEventListener('click', ()=>{
   window.storage.set(key, JSON.stringify(entry), true).catch(()=>{
     showError('Could not save — check connection. It will retry automatically once reconnected.');
   });
+  // Sync to Google Sheet (fire-and-forget)
+  const sheetAction = editingKey ? 'update' : 'create';
+  writeToSheet({ action: sheetAction, key, ...entry, cost: (() => { const c = costForEntry(entry); return c != null ? Math.round(c*100)/100 : null; })() });
   rememberOption(currentItem, sheetSelectedKey);
   closeSheet();
 });
@@ -1636,10 +1747,12 @@ function setActiveTab(which){
   document.getElementById('logView').hidden = which !== 'log';
   document.getElementById('dashboardView').hidden = which !== 'dashboard';
   document.getElementById('reportView').hidden = which !== 'report';
+  document.getElementById('settingsView').hidden = which !== 'settings';
   document.querySelector('.app').classList.toggle('dashboard-mode', which === 'dashboard');
   document.querySelector('.app').classList.toggle('report-mode', which === 'report');
   if(which === 'dashboard') renderDashboard();
   if(which === 'report') loadReport();
+  if(which === 'settings') renderSettings();
 }
 document.querySelectorAll('.tabbar-btn').forEach(btn => btn.addEventListener('click', ()=> setActiveTab(btn.dataset.tab)));
 
@@ -1701,8 +1814,8 @@ function renderFeedRows(entries, targetEl, opts){
     btn.addEventListener('click', ()=>{
       const key = btn.dataset.key;
       btn.disabled = true;
-      // Optimistic: remove the row immediately rather than waiting on a server round-trip.
       window.storage.delete(key, true).catch(()=> showError('Could not delete entry — check connection.'));
+      writeToSheet({ action:'delete', key });
       const row = btn.closest('.feed-row');
       if(row) row.remove();
     });
@@ -2441,10 +2554,223 @@ function exportReportCSV(){
 }
 document.getElementById('repExportBtn').addEventListener('click', exportReportCSV);
 
+// ---------- settings ----------
+const CONFIG_DOC = doc(db, 'config', 'app');
+
+async function loadAppConfig(){
+  try{
+    const snap = await getDoc(CONFIG_DOC);
+    return snap.exists() ? snap.data() : {};
+  }catch(e){ return {}; }
+}
+async function saveAppConfig(updates){
+  try{ await setDoc(CONFIG_DOC, updates, { merge: true }); }
+  catch(e){ showError('Could not save setting — check connection.'); }
+}
+
+function renderSettings(){
+  renderSettingsItemList();
+
+  // Sheets URL
+  const sheetsEl = document.getElementById('sheetsWebAppInput');
+  sheetsEl.value = appConfig.sheetsWebAppUrl || '';
+  sheetsEl.addEventListener('change', async ()=>{
+    appConfig.sheetsWebAppUrl = sheetsEl.value.trim();
+    await saveAppConfig({ sheetsWebAppUrl: appConfig.sheetsWebAppUrl });
+    document.getElementById('sheetsStatus').textContent = 'Saved — new entries will sync to your Sheet.';
+  });
+
+  // Slack URL
+  const webhookEl = document.getElementById('slackWebhookInput');
+  webhookEl.value = appConfig.slackWebhookUrl || '';
+  webhookEl.addEventListener('change', async ()=>{
+    appConfig.slackWebhookUrl = webhookEl.value.trim();
+    await saveAppConfig({ slackWebhookUrl: appConfig.slackWebhookUrl });
+  });
+  const lastSent = localStorage.getItem('slackLastSentDate');
+  document.getElementById('slackLastSentInfo').textContent = lastSent
+    ? `Last sent: ${new Date(lastSent).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}`
+    : 'Not sent yet this device session.';
+  updateSlackPreview();
+}
+
+function renderSettingsItemList(){
+  const container = document.getElementById('settingsItemList');
+  container.innerHTML = '';
+  CATEGORIES.forEach(cat => {
+    const header = document.createElement('div');
+    header.className = 'settings-cat-header';
+    header.style.borderTop = `3px solid ${cat.color}`;
+    header.textContent = cat.name;
+
+    const card = document.createElement('div');
+    card.className = 'settings-card';
+    card.appendChild(header);
+
+    cat.items.forEach(item => {
+      const currentOpts = getUnitOptions(item);
+      const currentPreset = detectPreset(currentOpts);
+      const row = document.createElement('div');
+      row.className = 'settings-item-row';
+      const sel = document.createElement('select');
+      sel.className = 'settings-item-select';
+      UNIT_PRESETS.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.value; opt.textContent = p.label;
+        if(p.value === currentPreset) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.addEventListener('change', async ()=>{
+        const preset = UNIT_PRESETS.find(p => p.value === sel.value);
+        if(!preset) return;
+        itemUnitOverrides[item] = preset.options;
+        await saveAppConfig({ itemUnits: itemUnitOverrides });
+        refreshAllViews();
+        updateSlackPreview();
+      });
+      row.innerHTML = `<span class="settings-item-label">${escapeHtml(item)}</span>`;
+      row.appendChild(sel);
+      card.appendChild(row);
+    });
+    container.appendChild(card);
+  });
+}
+
+// ---------- Google Sheets sync ----------
+function writeToSheet(payload){
+  const url = appConfig.sheetsWebAppUrl;
+  if(!url) return;
+  // fire-and-forget — don't block the UI
+  fetch(url, {
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  }).catch(()=>{});
+}
+
+// ---------- Slack weekly report ----------
+const SLACK_REPORT_ITEMS = [
+  { item:'Biscuits',          reportUnit:'each',  label:'Biscuits' },
+  { item:'Mini\'s',           reportUnit:'tray',  label:'Minis (pans)' },
+  { item:'Sausage',           reportUnit:'each',  label:'Sausage' },
+  { items:['Scrambled Eggs','Yellow Folds','Egg Whites'], reportUnit:'lb', label:'Eggs', eachOz:3 },
+  { item:'Spicy Breakfast',   reportUnit:'lb',    label:'Bfast Spicy' },
+  { item:'Breakfast Filet',   reportUnit:'lb',    label:'Bfast Filet' },
+  { item:'Spicy',             reportUnit:'lb',    label:'Spicy' },
+  { item:'Filet',             reportUnit:'lb',    label:'Filet' },
+  { item:'Strips',            reportUnit:'lb',    label:'Strips' },
+  { item:'Nuggets',           reportUnit:'lb',    label:'Nuggets' },
+  { item:'Mac & Cheese',      reportUnit:'lb',    label:'Mac & Cheese' },
+];
+
+function getLastWeekBounds(){
+  const now = new Date();
+  const dow = now.getDay();
+  const daysToThisMonday = (dow + 6) % 7;
+  const thisMonday = new Date(now); thisMonday.setDate(now.getDate() - daysToThisMonday); thisMonday.setHours(0,0,0,0);
+  const lastMonday = new Date(thisMonday); lastMonday.setDate(thisMonday.getDate() - 7);
+  return { start: lastMonday, end: thisMonday };
+}
+
+function slackItemTotal(entries, cfg){
+  const items = cfg.items ? cfg.items : [cfg.item];
+  let total = 0;
+  entries.filter(e => items.includes(e.item)).forEach(e => {
+    const qty = parseFloat(e.qty) || 0;
+    if(cfg.reportUnit === 'lb'){
+      if(e.unit === 'lb') total += qty;
+      else if(e.unit === 'each' && cfg.eachOz) total += qty * cfg.eachOz / 16;
+    } else if(cfg.reportUnit === 'each' && e.unit === 'each'){
+      total += qty;
+    } else if(cfg.reportUnit === 'tray' && e.unit === 'tray'){
+      total += qty;
+    } else if(cfg.reportUnit === 'tray' && e.unit === 'each'){
+      // convert each → tray if a tray = 20 (biscuits rule)
+      const factor = UNIT_CONVERSIONS[cfg.item] && UNIT_CONVERSIONS[cfg.item]['tray'];
+      if(factor) total += qty / factor;
+    }
+  });
+  return total;
+}
+
+function formatSlackQty(total, unit){
+  if(unit === 'lb') return formatWeight(total);
+  if(unit === 'each') return `${Math.round(total)} each`;
+  if(unit === 'tray') return `${formatQty(total)} pan${total !== 1 ? 's' : ''}`;
+  return formatQty(total);
+}
+
+async function buildSlackMessage(entries, weekStart, weekEnd){
+  const d1 = weekStart.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  const d2 = new Date(weekEnd.getTime()-1).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  const year = weekStart.getFullYear();
+  let lines = [`📊 *Weekly Waste Report* — ${d1}–${d2}, ${year}`, ''];
+  SLACK_REPORT_ITEMS.forEach(cfg => {
+    const total = slackItemTotal(entries, cfg);
+    lines.push(`*${cfg.label}:* ${formatSlackQty(total, cfg.reportUnit)}`);
+  });
+  const { total } = sumCost(entries);
+  lines.push('', `*Total waste cost:* ${formatCost(total)}`);
+  lines.push('_Sent from Waste Log_');
+  return lines.join('\n');
+}
+
+async function updateSlackPreview(){
+  const { start, end } = getLastWeekBounds();
+  try{
+    const entries = await fetchEntriesInRange(start, end);
+    const msg = await buildSlackMessage(entries, start, end);
+    document.getElementById('slackPreview').textContent = msg;
+  }catch(e){
+    document.getElementById('slackPreview').textContent = 'Could not load data.';
+  }
+}
+
+async function sendSlackWeeklyReport(webhookUrl, isAuto){
+  const { start, end } = getLastWeekBounds();
+  try{
+    const entries = await fetchEntriesInRange(start, end);
+    const text = await buildSlackMessage(entries, start, end);
+    await fetch(webhookUrl, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ text })
+    });
+    const sentDate = new Date().toISOString().slice(0,10);
+    localStorage.setItem('slackLastSentDate', sentDate); // per-device so each device only sends once
+    showError('✅ Slack report sent!'); // reusing error banner as toast
+    document.getElementById('slackLastSentInfo').textContent = `Last sent: ${new Date().toLocaleDateString()}`;
+  }catch(e){
+    showError('Could not send Slack message — check your webhook URL.');
+  }
+}
+
+async function checkWednesdaySlackReport(){
+  if(new Date().getDay() !== 3) return; // Only on Wednesday
+  const todayKey = new Date().toISOString().slice(0,10);
+  if(localStorage.getItem('slackLastSentDate') === todayKey) return; // Already sent from this device today
+  const webhookUrl = appConfig.slackWebhookUrl;
+  if(!webhookUrl) return; // No webhook configured
+  setTimeout(()=> sendSlackWeeklyReport(webhookUrl, true), 3000); // slight delay after page load
+}
+
+document.getElementById('slackSendNowBtn').addEventListener('click', async ()=>{
+  const webhookUrl = document.getElementById('slackWebhookInput').value.trim();
+  if(!webhookUrl){ showError('Paste your Zapier webhook URL first.'); return; }
+  appConfig.slackWebhookUrl = webhookUrl;
+  await saveAppConfig({ slackWebhookUrl: webhookUrl });
+  sendSlackWeeklyReport(webhookUrl, false);
+});
+
 // ---------- boot ----------
+let appConfig = {}; // loaded from Firestore on init; contains slackWebhookUrl, itemUnits, etc.
+
 (async function init(){
   await preloadOptionMemory();
+  appConfig = await loadAppConfig();
+  if(appConfig.itemUnits) itemUnitOverrides = appConfig.itemUnits;
   setupTodayListener();
+  checkWednesdaySlackReport();
 })();
 </script>
 </body>
