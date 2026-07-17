@@ -421,6 +421,47 @@ select{
 .drill-mini-fill{height:100%;border-radius:4px;}
 .drill-mini-val{font-size:11px;font-weight:700;font-family:ui-monospace,monospace;color:var(--ink2);width:38px;text-align:right;flex-shrink:0;}
 
+/* Bag order button */
+.bag-order-btn{
+  width:100%;background:var(--card);color:var(--cat-sides);border:2px solid var(--cat-sides);
+  border-radius:14px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;
+  margin-bottom:14px;box-shadow:var(--shadow);
+}
+.bag-order-btn:active{background:var(--cat-sides);color:#fff;transform:scale(0.98);}
+
+/* No-waste badge */
+.no-waste-badge{background:rgba(52,199,89,0.12);color:var(--success);}
+
+/* Item sheet action row */
+.item-sheet-actions{display:flex;gap:10px;margin-top:14px;}
+.no-waste-btn{
+  flex:1;background:var(--card);color:var(--success);border:2px solid var(--success);
+  border-radius:14px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:var(--shadow);
+}
+.no-waste-btn:active{background:var(--success);color:#fff;}
+
+/* Celebration overlay */
+#celebrationOverlay{
+  position:fixed;inset:0;z-index:9999;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;
+}
+#celebrationOverlay[hidden]{display:none;}
+.celebration-message{
+  background:rgba(255,255,255,0.96);border-radius:22px;padding:24px 32px;
+  font-size:22px;font-weight:800;text-align:center;box-shadow:var(--shadow-lg);
+  animation:celebPop .4s cubic-bezier(.175,.885,.32,1.275);z-index:2;position:relative;
+}
+@keyframes celebPop{from{transform:scale(0.5);opacity:0;}to{transform:scale(1);opacity:1;}}
+#confettiContainer{position:fixed;inset:0;pointer-events:none;overflow:hidden;}
+.confetti-piece{
+  position:absolute;top:-16px;border-radius:50%;
+  animation:confettiFall linear forwards;
+}
+@keyframes confettiFall{
+  0%{transform:translateY(0) rotate(0deg);opacity:1;}
+  100%{transform:translateY(110vh) rotate(720deg);opacity:0;}
+}
+
 /* ---------- Settings page ---------- */
 .settings-section{margin-bottom:24px;}
 .settings-section-title{font-size:13px;font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;}
@@ -599,6 +640,7 @@ textarea{
       <input class="search-input" id="itemSearch" type="search" placeholder="Search items…" autocomplete="off" autocorrect="off">
       <button class="search-clear" id="searchClear" hidden>✕</button>
     </div>
+    <button class="bag-order-btn" id="bagOrderBtn">🛍️ Request Bags for Shared Table</button>
     <div id="categoryList"></div>
   </main>
 
@@ -781,6 +823,17 @@ textarea{
     </div>
 
     <div class="settings-section">
+      <div class="settings-section-title">Supply Orders</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div class="settings-row-label">Bag Order Webhook URL</div>
+          <input class="settings-input" type="url" id="bagWebhookInput" placeholder="https://hooks.zapier.com/hooks/catch/…">
+        </div>
+        <div class="settings-hint">Paste your Zapier catch hook URL. Every bag order request from the Log page will POST to this URL.</div>
+      </div>
+    </div>
+
+    <div class="settings-section">
       <div class="settings-section-title">Google Sheets</div>
       <div class="settings-card">
         <div class="settings-row">
@@ -835,8 +888,32 @@ textarea{
       </div>
     </div>
     <div id="itemSheetEntries"></div>
-    <button class="btn btn-log" id="itemSheetLogNew" style="width:100%;margin-top:14px;">+ Log New Entry</button>
+    <div class="item-sheet-actions">
+      <button class="btn btn-log" id="itemSheetLogNew" style="flex:1;">+ Log Waste</button>
+      <button class="btn no-waste-btn" id="itemSheetNoWaste">✅ No Waste</button>
+    </div>
   </div>
+</div>
+
+<!-- BAG ORDER SHEET -->
+<div class="sheet-backdrop" id="bagSheetBackdrop" hidden>
+  <div class="entry-sheet">
+    <div class="sheet-handle"></div>
+    <h2 class="sheet-title">🛍️ Request Bags</h2>
+    <div class="sheet-sub" style="margin-bottom:16px;">A request will be sent for Shared Table bags.</div>
+    <span class="field-label">Note (optional)</span>
+    <textarea id="bagOrderNote" placeholder="e.g. running low, need by Friday…" style="margin-bottom:18px;"></textarea>
+    <div class="sheet-actions">
+      <button class="btn btn-cancel" id="bagSheetCancel">Cancel</button>
+      <button class="btn btn-log" id="bagSheetSend" style="background:var(--cat-sides);">Send Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- CELEBRATION OVERLAY -->
+<div id="celebrationOverlay" hidden>
+  <div class="celebration-message" id="celebrationMessage"></div>
+  <div id="confettiContainer"></div>
 </div>
 
 <!-- ENTRY SHEET -->
@@ -1295,14 +1372,18 @@ function getTodayDaypartCounts(){
   return counts;
 }
 function getTodayDaypartItemStats(){
-  const stats = {}; // item -> { byUnit: {unit: qty}, cost: number, hasCost: boolean }
+  const stats = {};
   todayEntriesCache.forEach(e => {
     if(e.daypart !== selectedDaypart) return;
-    if(!stats[e.item]) stats[e.item] = { byUnit: {}, cost: 0, hasCost: false };
+    if(!stats[e.item]) stats[e.item] = { byUnit:{}, cost:0, hasCost:false, noWaste:false };
     const s = stats[e.item];
-    s.byUnit[e.unit] = (s.byUnit[e.unit] || 0) + (parseFloat(e.qty) || 0);
-    const c = costForEntry(e);
-    if(c != null){ s.cost += c; s.hasCost = true; }
+    if(e.unit === 'noWaste'){
+      s.noWaste = true;
+    } else {
+      s.byUnit[e.unit] = (s.byUnit[e.unit]||0) + (parseFloat(e.qty)||0);
+      const c = costForEntry(e);
+      if(c != null){ s.cost += c; s.hasCost = true; }
+    }
   });
   return stats;
 }
@@ -1361,8 +1442,12 @@ function renderCategories(){
       row.className = 'item-row';
       let badge = '';
       if(s){
-        const qtyStr = Object.entries(s.byUnit).map(([unit,qty]) => displayQtyUnit(qty, unit)).join(', ');
-        badge = `<span class="done-badge">✓ ${qtyStr}${s.hasCost ? ' · ' + formatCost(s.cost) : ''}</span>`;
+        if(s.noWaste && Object.keys(s.byUnit).length === 0){
+          badge = `<span class="done-badge no-waste-badge">✅ No waste</span>`;
+        } else if(Object.keys(s.byUnit).length > 0){
+          const qtyStr = Object.entries(s.byUnit).map(([unit,qty]) => displayQtyUnit(qty, unit)).join(', ');
+          badge = `<span class="done-badge">✓ ${qtyStr}${s.hasCost ? ' · ' + formatCost(s.cost) : ''}</span>`;
+        }
       }
       let goalLine = '';
       const goal = GOALS[item];
@@ -1456,36 +1541,119 @@ document.getElementById('itemSheetLogNew').addEventListener('click', ()=>{
   openSheet(item, itemSheetCat);
 });
 
+document.getElementById('itemSheetNoWaste').addEventListener('click', ()=>{
+  const item = document.getElementById('itemSheetName').textContent;
+  const now = new Date();
+  const key = makeEntryKey(now);
+  const entry = { item, category: itemSheetCat.name, daypart: selectedDaypart, qty: 0, unit: 'noWaste', note: '', ts: now.toISOString(), loggedBy: currentUserName };
+  window.storage.set(key, JSON.stringify(entry), true).catch(()=>{});
+  closeItemSheet();
+  triggerCelebration(item);
+});
+
+// ---------- No waste celebration ----------
+
+function triggerCelebration(item){
+  const overlay = document.getElementById('celebrationOverlay');
+  const msg = document.getElementById('celebrationMessage');
+  const container = document.getElementById('confettiContainer');
+  msg.innerHTML = `🎉 Zero Waste!<br><span style="font-size:16px;font-weight:700;color:var(--ink2);">${escapeHtml(item)}</span><br><span style="font-size:13px;font-weight:600;color:var(--ink2);">Nice work! 🙌</span>`;
+  container.innerHTML = '';
+  const colors = ['#FF6B35','#FFB627','#2EC4B6','#34C759','#6C5CE7','#E63946','#FF9A5A'];
+  for(let i = 0; i < 60; i++){
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    const size = 8 + Math.random() * 8;
+    piece.style.cssText = `
+      left:${Math.random()*100}%;
+      width:${size}px; height:${size}px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-duration:${2 + Math.random()*2}s;
+      animation-delay:${Math.random()*0.8}s;
+      border-radius:${Math.random() > 0.5 ? '50%' : '2px'};
+    `;
+    container.appendChild(piece);
+  }
+  overlay.hidden = false;
+  setTimeout(()=>{ overlay.hidden = true; container.innerHTML = ''; }, 4000);
+}
+
+// ---------- bag order ----------
+document.getElementById('bagOrderBtn').addEventListener('click', ()=>{
+  document.getElementById('bagOrderNote').value = '';
+  document.getElementById('bagSheetBackdrop').hidden = false;
+});
+document.getElementById('bagSheetCancel').addEventListener('click', ()=>{
+  document.getElementById('bagSheetBackdrop').hidden = true;
+});
+document.getElementById('bagSheetBackdrop').addEventListener('click', (e)=>{
+  if(e.target.id === 'bagSheetBackdrop') document.getElementById('bagSheetBackdrop').hidden = true;
+});
+document.getElementById('bagSheetSend').addEventListener('click', async ()=>{
+  const webhookUrl = appConfig.bagWebhookUrl;
+  if(!webhookUrl){ showError('No bag order webhook set — add it in Settings.'); return; }
+  const note = document.getElementById('bagOrderNote').value.trim();
+  const btn = document.getElementById('bagSheetSend');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try{
+    await fetch(webhookUrl, {
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ type:'bag_order', requestedBy: currentUserName || 'Team', note, ts: new Date().toISOString() })
+    });
+    document.getElementById('bagSheetBackdrop').hidden = true;
+    showError('✅ Bag order sent!');
+  }catch(e){
+    showError('Could not send — check your webhook URL in Settings.');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Send Request';
+  }
+});
+
 function renderItemSheetEntries(item, cat){
   const wrap = document.getElementById('itemSheetEntries');
   const entries = todayEntriesCache
     .filter(e => e.item === item)
     .sort((a,b) => b.ts.localeCompare(a.ts));
 
+  // Disable "No Waste" button if real waste entries already exist
+  const hasRealWaste = entries.some(e => e.unit !== 'noWaste' && e.qty > 0);
+  const noWasteBtn = document.getElementById('itemSheetNoWaste');
+  noWasteBtn.disabled = hasRealWaste;
+  noWasteBtn.style.opacity = hasRealWaste ? '0.4' : '1';
+  noWasteBtn.title = hasRealWaste ? 'Cannot mark no waste — waste already logged' : '';
+
   if(entries.length === 0){
     wrap.innerHTML = `<div class="item-sheet-empty">Nothing logged for ${item} today yet.</div>`;
     return;
   }
 
-  const { total: totalCost } = sumCost(entries);
+  const realEntries = entries.filter(e => e.unit !== 'noWaste');
+  const { total: totalCost } = sumCost(realEntries);
   const byUnit = {};
-  entries.forEach(e => { byUnit[e.unit] = (byUnit[e.unit]||0) + e.qty; });
-  const totalStr = Object.entries(byUnit).map(([u,q]) => displayQtyUnit(q,u)).join(', ');
+  realEntries.forEach(e => { byUnit[e.unit] = (byUnit[e.unit]||0) + e.qty; });
+  const totalStr = Object.keys(byUnit).length > 0
+    ? Object.entries(byUnit).map(([u,q]) => displayQtyUnit(q,u)).join(', ')
+    : null;
 
   wrap.innerHTML = `
+    ${totalStr ? `
     <div style="background:var(--bg);border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:13px;display:flex;justify-content:space-between;align-items:baseline;">
       <span style="font-weight:700;">Total today: ${totalStr}</span>
       <span style="font-weight:800;color:var(--brand-dark);">${formatCost(totalCost)}</span>
-    </div>
+    </div>` : ''}
     ${entries.map(e => `
       <div class="item-sheet-entry" data-key="${e.__key}">
         <div class="ise-time">${formatTime(e.ts)}</div>
         <div class="ise-body">
-          <div class="ise-qty">${displayQtyUnit(e.qty, e.unit)} <span style="color:var(--brand-dark);font-size:12px;">${costForEntry(e) != null ? '· ' + formatCost(costForEntry(e)) : ''}</span></div>
+          ${e.unit === 'noWaste'
+            ? `<div class="ise-qty" style="color:var(--success);">✅ No waste logged</div>`
+            : `<div class="ise-qty">${displayQtyUnit(e.qty, e.unit)} <span style="color:var(--brand-dark);font-size:12px;">${costForEntry(e) != null ? '· ' + formatCost(costForEntry(e)) : ''}</span></div>`
+          }
           <div class="ise-meta">${e.daypart || ''}${e.loggedBy ? ' · 👤 ' + escapeHtml(e.loggedBy) : ''}${e.note ? ' · "' + escapeHtml(e.note) + '"' : ''}</div>
         </div>
         <div class="ise-actions">
-          <button class="feed-edit ise-edit" data-key="${e.__key}" title="Edit">✏️</button>
+          ${e.unit !== 'noWaste' ? `<button class="feed-edit ise-edit" data-key="${e.__key}" title="Edit">✏️</button>` : ''}
           <button class="feed-del ise-del" data-key="${e.__key}" title="Delete">✕</button>
         </div>
       </div>`).join('')}`;
@@ -2570,6 +2738,14 @@ async function saveAppConfig(updates){
 
 function renderSettings(){
   renderSettingsItemList();
+
+  // Bag order webhook
+  const bagEl = document.getElementById('bagWebhookInput');
+  bagEl.value = appConfig.bagWebhookUrl || '';
+  bagEl.addEventListener('change', async ()=>{
+    appConfig.bagWebhookUrl = bagEl.value.trim();
+    await saveAppConfig({ bagWebhookUrl: appConfig.bagWebhookUrl });
+  });
 
   // Sheets URL
   const sheetsEl = document.getElementById('sheetsWebAppInput');
