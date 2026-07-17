@@ -510,6 +510,13 @@ select{
 }
 .dp-item-chip.hidden{background:var(--track);color:var(--ink3);}
 .dp-item-chip:active{transform:scale(0.95);}
+.custom-item-chip{
+  display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1.5px solid var(--line);
+  border-radius:20px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--ink);margin:0 6px 6px 0;
+}
+.custom-item-chip .remove{background:none;border:none;color:var(--ink3);cursor:pointer;font-size:13px;padding:0;line-height:1;}
+.custom-item-chip .remove:hover{color:var(--danger);}
+.custom-items-wrap{display:flex;flex-wrap:wrap;padding:4px 0;}
 
 /* ---------- Bottom tab bar ---------- */
 .tabbar{
@@ -833,6 +840,38 @@ textarea{
     <div class="title-sub" style="margin-bottom:20px;">Shared team configuration</div>
 
     <div class="settings-section">
+      <div class="settings-section-title">Add New Item</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div class="settings-row-label">Item Name</div>
+          <input class="settings-input" type="text" id="newItemName" placeholder="e.g. Grilled Nuggets">
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-label">Category</div>
+          <select class="settings-item-select" id="newItemCategory" style="width:100%;max-width:100%;">
+            <option value="Eggs &amp; Breakfast">Eggs &amp; Breakfast</option>
+            <option value="Chicken" selected>Chicken</option>
+            <option value="Buns">Buns</option>
+            <option value="Sides &amp; Prep">Sides &amp; Prep</option>
+          </select>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-label">Unit</div>
+          <select class="settings-item-select" id="newItemUnit" style="width:100%;max-width:100%;">
+            <option value="weight">Weight (lb)</option>
+            <option value="each">Each (individual)</option>
+            <option value="tray">Tray / Pan</option>
+            <option value="qt">Quarts (qt)</option>
+          </select>
+        </div>
+        <button class="settings-action-btn" id="addItemBtn">+ Add Item</button>
+      </div>
+      <div class="settings-section-title" style="margin-top:16px;">Custom Items</div>
+      <div class="settings-hint">Items you've added. Tap to remove.</div>
+      <div id="customItemsList"></div>
+    </div>
+
+    <div class="settings-section">
       <div class="settings-section-title">Items by Daypart</div>
       <div class="settings-hint">Tap an item to hide it from a specific daypart. Hidden items show as faded.</div>
       <div id="settingsDaypartItems"></div>
@@ -1125,12 +1164,26 @@ async function fetchEntriesInRange(startDate, endDateExclusive){
   return snaps.docs.map(d => ({ ...d.data(), __key: 'entry:' + d.id }));
 }
 
-const CATEGORIES = [
+const BASE_CATEGORIES = [
   { name: "Eggs & Breakfast", color: "var(--cat-breakfast)", items: ["Biscuits","Mini's","Sausage","Scrambled Eggs","Yellow Folds","Egg Whites","Hashbrowns","Breakfast Filet","Spicy Breakfast"] },
   { name: "Chicken", color: "var(--cat-chicken)", items: ["Filet","Spicy","Nuggets","Strips","Expired Cooldown Chicken"] },
   { name: "Buns", color: "var(--cat-buns)", items: ["Buns","Multigrain Buns","Specialty Buns"] },
   { name: "Sides & Prep", color: "var(--cat-sides)", items: ["Mac & Cheese","Milkwash"] }
 ];
+let customItems = []; // [{ name, category }] loaded from Firestore
+
+function buildCategories(){
+  // Deep-clone base categories
+  const cats = BASE_CATEGORIES.map(c => ({ ...c, items: [...c.items] }));
+  // Merge in custom items
+  customItems.forEach(ci => {
+    const cat = cats.find(c => c.name === ci.category);
+    if(cat && !cat.items.includes(ci.name)) cat.items.push(ci.name);
+  });
+  return cats;
+}
+// CATEGORIES is rebuilt whenever customItems changes
+let CATEGORIES = buildCategories();
 const DAYPARTS = ["Breakfast","Lunch","Afternoon","Dinner","Closing"];
 const DAYPART_COLORS = {
   "Breakfast": "var(--cat-breakfast)",
@@ -1259,8 +1312,13 @@ function getTodayTotalForGoalUnit(item, unit){
   return { total, allConvertible };
 }
 
-const ITEM_TO_CAT = {};
-CATEGORIES.forEach(cat => cat.items.forEach(i => ITEM_TO_CAT[i] = cat));
+let ITEM_TO_CAT = {};
+function rebuildItemIndex(){
+  CATEGORIES = buildCategories();
+  ITEM_TO_CAT = {};
+  CATEGORIES.forEach(cat => cat.items.forEach(i => ITEM_TO_CAT[i] = cat));
+}
+rebuildItemIndex();
 
 let daypartItemConfig = {}; // { [daypart]: { hidden: [itemName, ...] } } — loaded from Firestore
 
@@ -2766,6 +2824,7 @@ async function saveAppConfig(updates){
 }
 
 function renderSettings(){
+  renderCustomItemsList();
   renderSettingsDaypartItems();
   renderSettingsItemList();
 
@@ -2799,6 +2858,51 @@ function renderSettings(){
     : 'Not sent yet this device session.';
   updateSlackPreview();
 }
+
+function renderCustomItemsList(){
+  const container = document.getElementById('customItemsList');
+  if(!container) return;
+  if(customItems.length === 0){
+    container.innerHTML = '<div class="settings-hint" style="padding:0 0 4px;">No custom items yet.</div>';
+    return;
+  }
+  container.innerHTML = '<div class="custom-items-wrap">' +
+    customItems.map((ci, idx) => `
+      <span class="custom-item-chip">
+        ${escapeHtml(ci.name)} <span style="color:var(--ink3);font-weight:400;">· ${escapeHtml(ci.category)}</span>
+        <button class="remove" data-idx="${idx}" title="Remove">✕</button>
+      </span>`).join('') +
+    '</div>';
+  container.querySelectorAll('.remove').forEach(btn => {
+    btn.addEventListener('click', async ()=>{
+      const idx = parseInt(btn.dataset.idx);
+      customItems.splice(idx, 1);
+      await saveAppConfig({ customItems });
+      rebuildItemIndex();
+      refreshAllViews();
+      renderSettings();
+    });
+  });
+}
+
+document.getElementById('addItemBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('newItemName').value.trim();
+  const category = document.getElementById('newItemCategory').value;
+  const unitPreset = document.getElementById('newItemUnit').value;
+  if(!name){ showError('Enter an item name.'); return; }
+  const allItems = CATEGORIES.flatMap(c => c.items);
+  if(allItems.includes(name)){ showError(`"${name}" already exists.`); return; }
+  customItems.push({ name, category });
+  // Apply the chosen unit preset
+  const preset = UNIT_PRESETS.find(p => p.value === unitPreset);
+  if(preset) itemUnitOverrides[name] = preset.options;
+  await saveAppConfig({ customItems, itemUnits: itemUnitOverrides });
+  rebuildItemIndex();
+  document.getElementById('newItemName').value = '';
+  refreshAllViews();
+  renderSettings();
+  showError(`✅ "${name}" added to ${category}.`);
+});
 
 function renderSettingsDaypartItems(){
   const container = document.getElementById('settingsDaypartItems');
@@ -3021,6 +3125,7 @@ let appConfig = {}; // loaded from Firestore on init; contains slackWebhookUrl, 
   appConfig = await loadAppConfig();
   if(appConfig.itemUnits) itemUnitOverrides = appConfig.itemUnits;
   if(appConfig.daypartItems) daypartItemConfig = appConfig.daypartItems;
+  if(appConfig.customItems){ customItems = appConfig.customItems; rebuildItemIndex(); }
   setupTodayListener();
   checkWednesdaySlackReport();
 })();
