@@ -421,6 +421,23 @@ select{
 .drill-mini-fill{height:100%;border-radius:4px;}
 .drill-mini-val{font-size:11px;font-weight:700;font-family:ui-monospace,monospace;color:var(--ink2);width:38px;text-align:right;flex-shrink:0;}
 
+/* Quick add (items hidden from current daypart) */
+.quick-add-toggle{
+  width:100%;display:flex;align-items:center;justify-content:space-between;
+  background:var(--card);border:1.5px dashed var(--line);border-radius:14px;
+  padding:12px 16px;font-size:14px;font-weight:700;color:var(--ink2);cursor:pointer;
+  margin-bottom:8px;
+}
+.quick-add-toggle:active{background:var(--bg);}
+.quick-add-chev{font-size:11px;transition:transform .2s;}
+.quick-add-toggle.open .quick-add-chev{transform:rotate(180deg);}
+.quick-add-chips{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 14px;}
+.quick-add-chip{
+  background:var(--card);border:1.5px solid var(--line);border-radius:20px;
+  padding:8px 14px;font-size:13px;font-weight:600;color:var(--ink2);cursor:pointer;
+}
+.quick-add-chip:active{background:var(--bg);border-color:var(--brand);color:var(--ink);}
+
 /* Log page action row */
 .log-action-row{display:flex;gap:10px;margin-bottom:14px;}
 .bag-order-btn{
@@ -665,6 +682,13 @@ textarea{
       <a class="process-link-btn" href="https://drive.google.com/file/d/1xqLoJhvz8rn6qjW9pXQ14VcTC15_adQ8/view?usp=sharing" target="_blank" rel="noopener noreferrer">🍗 Cooldown Process</a>
     </div>
     <div id="categoryList"></div>
+    <div id="quickAddSection" hidden>
+      <button class="quick-add-toggle" id="quickAddToggle">
+        <span id="quickAddToggleLabel">➕ Anything else?</span>
+        <span class="quick-add-chev">▼</span>
+      </button>
+      <div id="quickAddItems" hidden></div>
+    </div>
   </main>
 
   <!-- DASHBOARD VIEW (designed for mirroring to a TV) -->
@@ -1417,7 +1441,49 @@ function refreshAllViews(){
   renderDaypartStatusRow();
   updateProgress();
   renderDashboard();
+  renderQuickAddSection();
 }
+
+function renderQuickAddSection(){
+  // Find all items hidden from this daypart
+  const visible = new Set(getVisibleCategories(selectedDaypart).flatMap(c => c.items));
+  const all = CATEGORIES.flatMap(c => c.items);
+  const hidden = all.filter(item => !visible.has(item));
+  const section = document.getElementById('quickAddSection');
+  if(hidden.length === 0){ section.hidden = true; return; }
+  section.hidden = false;
+  document.getElementById('quickAddToggleLabel').textContent = `➕ Anything else? (${hidden.length} more items)`;
+  const itemsWrap = document.getElementById('quickAddItems');
+  if(!itemsWrap.hidden) renderQuickAddChips(hidden, itemsWrap);
+}
+
+function renderQuickAddChips(items, container){
+  container.innerHTML = '<div class="quick-add-chips">' +
+    items.map(item => {
+      const cat = ITEM_TO_CAT[item] || CATEGORIES[0];
+      return `<button class="quick-add-chip" data-item="${escapeHtml(item)}" style="border-color:${cat.color};color:${cat.color};">${escapeHtml(item)}</button>`;
+    }).join('') + '</div>';
+  container.querySelectorAll('.quick-add-chip').forEach(chip => {
+    chip.addEventListener('click', ()=>{
+      const item = chip.dataset.item;
+      const cat = ITEM_TO_CAT[item] || CATEGORIES[0];
+      openItemSheet(item, cat);
+    });
+  });
+}
+
+document.getElementById('quickAddToggle').addEventListener('click', ()=>{
+  const toggle = document.getElementById('quickAddToggle');
+  const itemsWrap = document.getElementById('quickAddItems');
+  const open = itemsWrap.hidden;
+  toggle.classList.toggle('open', open);
+  itemsWrap.hidden = !open;
+  if(open){
+    const visible = new Set(getVisibleCategories(selectedDaypart).flatMap(c => c.items));
+    const hidden = CATEGORIES.flatMap(c => c.items).filter(item => !visible.has(item));
+    renderQuickAddChips(hidden, itemsWrap);
+  }
+});
 function renderDaypartStatusRow(){
   const counts = {};
   DAYPARTS.forEach(dp => counts[dp] = 0);
