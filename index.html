@@ -421,13 +421,19 @@ select{
 .drill-mini-fill{height:100%;border-radius:4px;}
 .drill-mini-val{font-size:11px;font-weight:700;font-family:ui-monospace,monospace;color:var(--ink2);width:38px;text-align:right;flex-shrink:0;}
 
-/* Bag order button */
+/* Log page action row */
+.log-action-row{display:flex;gap:10px;margin-bottom:14px;}
 .bag-order-btn{
-  width:100%;background:var(--card);color:var(--cat-sides);border:2px solid var(--cat-sides);
-  border-radius:14px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;
-  margin-bottom:14px;box-shadow:var(--shadow);
+  flex:1;background:var(--card);color:var(--cat-sides);border:2px solid var(--cat-sides);
+  border-radius:14px;padding:12px 8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:var(--shadow);
 }
 .bag-order-btn:active{background:var(--cat-sides);color:#fff;transform:scale(0.98);}
+.process-link-btn{
+  flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none;
+  background:var(--card);color:var(--cat-chicken);border:2px solid var(--cat-chicken);
+  border-radius:14px;padding:12px 8px;font-size:13px;font-weight:700;box-shadow:var(--shadow);text-align:center;
+}
+.process-link-btn:active{background:var(--cat-chicken);color:#fff;transform:scale(0.98);}
 
 /* No-waste badge */
 .no-waste-badge{background:rgba(52,199,89,0.12);color:var(--success);}
@@ -497,6 +503,13 @@ select{
   font-size:12px;font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:0.04em;
   padding:10px 16px 6px;background:var(--bg);
 }
+.dp-item-chips{display:flex;flex-wrap:wrap;gap:7px;padding:10px 14px 14px;}
+.dp-item-chip{
+  padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;
+  background:var(--success);color:#fff;border:none;transition:opacity .15s,background .15s;
+}
+.dp-item-chip.hidden{background:var(--track);color:var(--ink3);}
+.dp-item-chip:active{transform:scale(0.95);}
 
 /* ---------- Bottom tab bar ---------- */
 .tabbar{
@@ -640,7 +653,10 @@ textarea{
       <input class="search-input" id="itemSearch" type="search" placeholder="Search items…" autocomplete="off" autocorrect="off">
       <button class="search-clear" id="searchClear" hidden>✕</button>
     </div>
-    <button class="bag-order-btn" id="bagOrderBtn">🛍️ Request Bags for Shared Table</button>
+    <div class="log-action-row">
+      <button class="bag-order-btn" id="bagOrderBtn">🛍️ Request Bags</button>
+      <a class="process-link-btn" href="https://drive.google.com/file/d/1xqLoJhvz8rn6qjW9pXQ14VcTC15_adQ8/view?usp=sharing" target="_blank" rel="noopener noreferrer">🍗 Cooldown Process</a>
+    </div>
     <div id="categoryList"></div>
   </main>
 
@@ -815,6 +831,12 @@ textarea{
 
     <div class="large-title" style="margin-bottom:4px;">Settings</div>
     <div class="title-sub" style="margin-bottom:20px;">Shared team configuration</div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Items by Daypart</div>
+      <div class="settings-hint">Tap an item to hide it from a specific daypart. Hidden items show as faded.</div>
+      <div id="settingsDaypartItems"></div>
+    </div>
 
     <div class="settings-section">
       <div class="settings-section-title">Item Units</div>
@@ -1240,9 +1262,16 @@ function getTodayTotalForGoalUnit(item, unit){
 const ITEM_TO_CAT = {};
 CATEGORIES.forEach(cat => cat.items.forEach(i => ITEM_TO_CAT[i] = cat));
 
+let daypartItemConfig = {}; // { [daypart]: { hidden: [itemName, ...] } } — loaded from Firestore
+
 function getVisibleCategories(daypart){
-  if(daypart === 'Breakfast') return CATEGORIES;
-  return CATEGORIES.filter(cat => cat.name !== 'Eggs & Breakfast');
+  const base = daypart === 'Breakfast' ? CATEGORIES : CATEGORIES.filter(cat => cat.name !== 'Eggs & Breakfast');
+  const hidden = (daypartItemConfig[daypart] && daypartItemConfig[daypart].hidden) || [];
+  if(hidden.length === 0) return base;
+  return base.map(cat => ({
+    ...cat,
+    items: cat.items.filter(item => !hidden.includes(item))
+  })).filter(cat => cat.items.length > 0);
 }
 function getVisibleItemCount(daypart){
   return getVisibleCategories(daypart).reduce((s,c)=> s + c.items.length, 0);
@@ -2737,6 +2766,7 @@ async function saveAppConfig(updates){
 }
 
 function renderSettings(){
+  renderSettingsDaypartItems();
   renderSettingsItemList();
 
   // Bag order webhook
@@ -2768,6 +2798,51 @@ function renderSettings(){
     ? `Last sent: ${new Date(lastSent).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}`
     : 'Not sent yet this device session.';
   updateSlackPreview();
+}
+
+function renderSettingsDaypartItems(){
+  const container = document.getElementById('settingsDaypartItems');
+  container.innerHTML = '';
+
+  DAYPARTS.forEach(dp => {
+    const hidden = (daypartItemConfig[dp] && daypartItemConfig[dp].hidden) || [];
+    const allItems = (dp === 'Breakfast' ? CATEGORIES : CATEGORIES.filter(c => c.name !== 'Eggs & Breakfast'))
+      .flatMap(c => c.items);
+
+    const card = document.createElement('div');
+    card.className = 'settings-card';
+    card.style.marginBottom = '10px';
+
+    const header = document.createElement('div');
+    header.className = 'settings-cat-header';
+    header.style.cssText = `border-top:3px solid ${DAYPART_COLORS[dp]||'var(--brand)'};color:${DAYPART_COLORS[dp]||'var(--brand)'}`;
+    header.textContent = dp;
+    card.appendChild(header);
+
+    const chips = document.createElement('div');
+    chips.className = 'dp-item-chips';
+
+    allItems.forEach(item => {
+      const isHidden = hidden.includes(item);
+      const chip = document.createElement('button');
+      chip.className = 'dp-item-chip' + (isHidden ? ' hidden' : '');
+      chip.textContent = item;
+      chip.title = isHidden ? 'Tap to show on ' + dp : 'Tap to hide from ' + dp;
+      chip.addEventListener('click', async ()=>{
+        if(!daypartItemConfig[dp]) daypartItemConfig[dp] = { hidden: [] };
+        const hiddenArr = daypartItemConfig[dp].hidden;
+        const idx = hiddenArr.indexOf(item);
+        if(idx === -1) hiddenArr.push(item);
+        else hiddenArr.splice(idx, 1);
+        await saveAppConfig({ daypartItems: daypartItemConfig });
+        renderSettingsDaypartItems();
+        refreshAllViews();
+      });
+      chips.appendChild(chip);
+    });
+    card.appendChild(chips);
+    container.appendChild(card);
+  });
 }
 
 function renderSettingsItemList(){
@@ -2945,6 +3020,7 @@ let appConfig = {}; // loaded from Firestore on init; contains slackWebhookUrl, 
   await preloadOptionMemory();
   appConfig = await loadAppConfig();
   if(appConfig.itemUnits) itemUnitOverrides = appConfig.itemUnits;
+  if(appConfig.daypartItems) daypartItemConfig = appConfig.daypartItems;
   setupTodayListener();
   checkWednesdaySlackReport();
 })();
