@@ -927,6 +927,7 @@ textarea{
         </div>
         <div class="settings-hint">Paste your deployed Apps Script URL above. Every new, edited, or deleted entry will sync to your Sheet automatically on all devices.</div>
         <div class="settings-row-meta" id="sheetsStatus"></div>
+        <button class="settings-action-btn" id="sheetsTestBtn" style="background:var(--cat-sides);">🧪 Send Test Row</button>
       </div>
     </div>
 
@@ -2911,6 +2912,30 @@ function renderSettings(){
     document.getElementById('sheetsStatus').textContent = 'Saved — new entries will sync to your Sheet.';
   });
 
+  document.getElementById('sheetsTestBtn').addEventListener('click', ()=>{
+    const url = appConfig.sheetsWebAppUrl;
+    if(!url){ showError('Paste your Apps Script URL first.'); return; }
+    const testEntry = {
+      action: 'create',
+      key: 'entry:TEST-' + Date.now(),
+      item: '🧪 TEST ENTRY',
+      category: 'Test',
+      daypart: 'Test',
+      qty: 1,
+      unit: 'each',
+      cost: 0,
+      loggedBy: currentUserName || 'Settings test',
+      note: 'Delete this row — just confirming the Sheet connection works',
+      ts: new Date().toISOString()
+    };
+    fetch(url, {
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify(testEntry)
+    }).catch(()=>{});
+    document.getElementById('sheetsStatus').textContent = 'Test row sent — check your Sheet for "🧪 TEST ENTRY". If it appears, the connection is working.';
+  });
+
   // Slack URL
   const webhookEl = document.getElementById('slackWebhookInput');
   webhookEl.value = appConfig.slackWebhookUrl || '';
@@ -3061,11 +3086,10 @@ function renderSettingsItemList(){
 function writeToSheet(payload){
   const url = appConfig.sheetsWebAppUrl;
   if(!url) return;
-  // fire-and-forget — don't block the UI
   fetch(url, {
     method:'POST',
     mode:'no-cors',
-    headers:{'Content-Type':'application/json'},
+    headers:{'Content-Type':'text/plain'}, // text/plain is allowed in no-cors; application/json is not
     body:JSON.stringify(payload)
   }).catch(()=>{});
 }
