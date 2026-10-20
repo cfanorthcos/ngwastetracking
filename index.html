@@ -3139,8 +3139,13 @@ function slackItemTotal(entries, cfg){
   return total;
 }
 
+// Weekly report weights go out as decimal pounds (e.g. 1 lb 8 oz -> "1.5 lbs"), not lb + oz.
+function formatReportWeight(totalLbs){
+  return `${parseFloat((Math.round(totalLbs * 100) / 100).toFixed(2))} lbs`;
+}
+
 function formatSlackQty(total, unit){
-  if(unit === 'lb') return formatWeight(total);
+  if(unit === 'lb') return formatReportWeight(total);
   if(unit === 'each') return `${Math.round(total)} each`;
   if(unit === 'tray') return `${formatQty(total)} pan${total !== 1 ? 's' : ''}`;
   return formatQty(total);
