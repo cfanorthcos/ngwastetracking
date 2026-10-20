@@ -3096,17 +3096,19 @@ function writeToSheet(payload){
 
 // ---------- Slack weekly report ----------
 const SLACK_REPORT_ITEMS = [
-  { item:'Biscuits',          reportUnit:'each',  label:'Biscuits' },
-  { item:'Mini\'s',           reportUnit:'tray',  label:'Minis (pans)' },
-  { item:'Sausage',           reportUnit:'each',  label:'Sausage' },
-  { items:['Scrambled Eggs','Yellow Folds','Egg Whites'], reportUnit:'lb', label:'Eggs', eachOz:3 },
-  { item:'Spicy Breakfast',   reportUnit:'lb',    label:'Bfast Spicy' },
-  { item:'Breakfast Filet',   reportUnit:'lb',    label:'Bfast Filet' },
-  { item:'Spicy',             reportUnit:'lb',    label:'Spicy' },
-  { item:'Filet',             reportUnit:'lb',    label:'Filet' },
-  { item:'Strips',            reportUnit:'lb',    label:'Strips' },
-  { item:'Nuggets',           reportUnit:'lb',    label:'Nuggets' },
-  { item:'Mac & Cheese',      reportUnit:'lb',    label:'Mac & Cheese' },
+  { item:'Biscuits',          reportUnit:'each',  label:'Biscuit w/ Jelly (204)' },
+  { item:'Spicy Breakfast',   reportUnit:'lb',    label:'Chicken, Bkfst Filet Spicy (6121)' },
+  { item:'Breakfast Filet',   reportUnit:'lb',    label:'Chicken, Breakfast Filets (72)' },
+  { item:'Spicy',             reportUnit:'lb',    label:'Chicken, Filet Spicy PC (3581)' },
+  { item:'Filet',             reportUnit:'lb',    label:'Chicken, Filets (1)' },
+  // No built-in grilled item; matches a custom item added under any of these names
+  { items:['Grilled Filet','Grilled Filets','Grilled Chicken','Grilled'], reportUnit:'lb', label:'Chicken, Filets, Grilled (9884)' },
+  { item:'Nuggets',           reportUnit:'lb',    label:'Chicken, Nuggets (70)' },
+  { item:'Strips',            reportUnit:'lb',    label:'Chicken, Tenders (3201)' },
+  { items:['Scrambled Eggs','Yellow Folds','Egg Whites'], reportUnit:'lb', label:'Egg, Scrambled Blend (69)', eachOz:3 },
+  { item:'Mac & Cheese',      reportUnit:'lb',    label:'Macaroni & Cheese (13701)' },
+  { item:'Mini\'s',           reportUnit:'tray',  label:'Roll, Mini Yeast (562)' },
+  { item:'Sausage',           reportUnit:'each',  label:'Sausage, Precooked 4/10# Boxes (1909)' },
 ];
 
 function getLastWeekBounds(){
