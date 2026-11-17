@@ -1107,7 +1107,7 @@ textarea{
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-  doc, getDoc, setDoc, deleteDoc,
+  doc, getDoc, setDoc, deleteDoc, deleteField,
   collection, query, where, getDocs, documentId, onSnapshot, orderBy
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
@@ -2938,10 +2938,10 @@ function renderSettings(){
 
   // Slack URL
   const webhookEl = document.getElementById('slackWebhookInput');
-  webhookEl.value = appConfig.slackWebhookUrl || '';
+  webhookEl.value = appConfig.slackReportWebhookUrl || '';
   webhookEl.addEventListener('change', async ()=>{
-    appConfig.slackWebhookUrl = webhookEl.value.trim();
-    await saveAppConfig({ slackWebhookUrl: appConfig.slackWebhookUrl });
+    appConfig.slackReportWebhookUrl = webhookEl.value.trim();
+    await saveAppConfig({ slackReportWebhookUrl: appConfig.slackReportWebhookUrl });
   });
   const lastSent = localStorage.getItem('slackLastSentDate');
   document.getElementById('slackLastSentInfo').textContent = lastSent
@@ -3199,7 +3199,7 @@ async function checkWednesdaySlackReport(){
   if(new Date().getDay() !== 3) return; // Only on Wednesday
   const todayKey = new Date().toISOString().slice(0,10);
   if(localStorage.getItem('slackLastSentDate') === todayKey) return; // Already sent from this device today
-  const webhookUrl = appConfig.slackWebhookUrl;
+  const webhookUrl = appConfig.slackReportWebhookUrl;
   if(!webhookUrl) return; // No webhook configured
   setTimeout(()=> sendSlackWeeklyReport(webhookUrl, true), 3000); // slight delay after page load
 }
@@ -3207,17 +3207,53 @@ async function checkWednesdaySlackReport(){
 document.getElementById('slackSendNowBtn').addEventListener('click', async ()=>{
   const webhookUrl = document.getElementById('slackWebhookInput').value.trim();
   if(!webhookUrl){ showError('Paste your Zapier webhook URL first.'); return; }
-  appConfig.slackWebhookUrl = webhookUrl;
-  await saveAppConfig({ slackWebhookUrl: webhookUrl });
+  appConfig.slackReportWebhookUrl = webhookUrl;
+  await saveAppConfig({ slackReportWebhookUrl: webhookUrl });
   sendSlackWeeklyReport(webhookUrl, false);
 });
 
+// The Slack webhook used to live under "slackWebhookUrl". Old copies of this page still cached
+// on phones read that key and post the outdated report format, so the URL now lives under
+// "slackReportWebhookUrl" and the old key is removed — stale copies find no webhook and stay quiet.
+async function migrateSlackWebhookKey(){
+  if(!appConfig.slackWebhookUrl) return;
+  const updates = { slackWebhookUrl: deleteField() };
+  if(!appConfig.slackReportWebhookUrl){
+    appConfig.slackReportWebhookUrl = appConfig.slackWebhookUrl;
+    updates.slackReportWebhookUrl = appConfig.slackWebhookUrl;
+  }
+  delete appConfig.slackWebhookUrl;
+  await saveAppConfig(updates);
+}
+
+// ---------- auto-update ----------
+// Phones can keep an old copy of this page for weeks. Whenever the app opens or comes back to
+// the foreground, fetch the live page; if it changed since this device last saw it, reload.
+async function checkForAppUpdate(){
+  if(!/^https?:$/.test(location.protocol)) return;
+  try{
+    const res = await fetch(location.pathname, { cache: 'reload' });
+    if(!res.ok) return;
+    const text = await res.text();
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    const hash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    const seen = localStorage.getItem('appPageHash');
+    localStorage.setItem('appPageHash', hash);
+    if(seen && seen !== hash) location.reload();
+  }catch(e){ /* offline or storage blocked — try again next time */ }
+}
+checkForAppUpdate();
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible') checkForAppUpdate();
+});
+
 // ---------- boot ----------
-let appConfig = {}; // loaded from Firestore on init; contains slackWebhookUrl, itemUnits, etc.
+let appConfig = {}; // loaded from Firestore on init; contains slackReportWebhookUrl, itemUnits, etc.
 
 (async function init(){
   await preloadOptionMemory();
   appConfig = await loadAppConfig();
+  await migrateSlackWebhookKey();
   if(appConfig.itemUnits) itemUnitOverrides = appConfig.itemUnits;
   if(appConfig.daypartItems) daypartItemConfig = appConfig.daypartItems;
   if(appConfig.customItems){ customItems = appConfig.customItems; rebuildItemIndex(); }
